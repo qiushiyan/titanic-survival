@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis with descriptive statistics and visualization and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, validation and intepretation as well as other relevant techniques such as multiple imputation for missing data. This analysis is fully reproducible with all R code and text provided. 
+   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis on survival patterns and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, bootstrap validation and intepretation of effects as well as other relevant techniques such as multiple imputation for missing data. This analysis is made fully reproducible with all R code and text provided. 
 keywords: |
   logistic regression; multiple imputation; model validation
 bibliography: references.bib
