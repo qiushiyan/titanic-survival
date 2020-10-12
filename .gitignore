@@ -1,0 +1,8 @@
+.Rhistory
+.RData
+.Rproj.user
+*.aux
+*.out
+*.log
+titanic-survival_files
+titanic-survival.tex

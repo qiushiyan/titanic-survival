@@ -1,0 +1,177 @@
+---
+title: |
+  Modeling Titanic Survival
+author:
+  - name: Qiushi Yan
+    affil: a
+    email: "qiushi.yann@gmail.com, website: https://qiushi.rbind.io"
+affiliation:
+  - num: a
+    address: |
+      Beijing, China
+abstract: |
+   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis with descriptive statistics and visualization and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, validation and intepretation as well as other relevant techniques such as multiple imputation for missing data. This analysis is fully reproducible with R code and text provided in supplemental materials. 
+keywords: |
+  logistic regression; multiple imputation; model validation
+bibliography: references.bib
+link-citations: true
+geometry: "margin=1in"
+colorlinks: yes
+#appendix: appendix.tex
+output:
+  bookdown::pdf_book:
+    base_format: rticles::tf_article
+    includes:
+      in_header: header.tex
+---
+
+http://www.crema-research.ch/papers/2009-03.pdf
+
+https://www.insider.com/titanic-secrets-facts-2018-4#at-the-memorial-of-frederick-fleet-one-of-the-lookouts-a-prankster-left-a-pair-of-binoculars-with-a-note-reading-sorry-for-bringing-these-100-years-too-late-8
+
+
+http://rpubs.com/edwardcooper/titanic1
+
+https://www.kaggle.com/mrisdal/exploring-survival-on-the-titanic/report
+
+https://www.kaggle.com/startupsci/titanic-data-science-solutions/comments
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  echo = FALSE
+)
+options(prType='latex')
+library(dplyr)
+library(ggplot2)
+library(rms)
+titanic_raw <- readr::read_csv("data/titanic3.csv")
+mylatex <- function (...) {
+    o <- capture.output(latex(...))
+    # this will strip /all/ line-only comments; or if you're only
+    #  interested in stripping the first such comment you could
+    #  adjust accordingly
+    o <- grep('^%', o, inv=T, value=T)
+    cat(o, sep='\n')
+}
+```
+
+
+
+
+# Introduction 
+
+The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I use here comes by courtesy of [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) founded by Thomas Cason, namely `titanic3` with following variables available (table \@ref(data-dictionary)):
+
+```{r data-dictionary,results="asis"}
+tribble(
+  ~ Variable, ~ Definition, ~ Note,
+  "pclass", "Ticket class", "1 = 1st, 2 = 2nd, 3 = 3rd",
+  "survival", "Survival Status", "0 = No, 1 = Yes",
+  "name", "Name", "",
+  "sex", "Sex", "",
+  "age", "Age", "In years, some infants had fractional values",
+  "sibsp", "Number of Siblings/Spouses Aboard", "",
+  "parch", "Number of Parents/Children Aboard", "",
+  "ticket", "Ticket Number", "",
+  "fare", "Passenger Fare", "in Pre-1970 British Pounds ",
+  "cabin", "Cabin", "",
+  "embarked", "Port of Embarkation", "Cherbourg, Queenstown or Southampton",
+  "boat", "Lifeboat", "", 
+  "body", "Body Identification Number", "",
+  "home.dest", "Home/Destination", ""
+) %>% 
+  mylatex(caption = "Data Dictionary", file = "", 
+          table.env = TRUE, position = "!b", label = "data-dictionary", size = "small")
+
+```
+
+The raw data contains 1309^[Approximately 60% of all Titanic's passengers and crew, which is 2208] rows and 14 variables, with each row corresponding to the survival status of one passenger, alongside with his/her gender, age, family relations on board, ticket fare, etc. In the data there are `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
+
+Inspired by Dr. Frank Harrell's similar case study on the same topic in his *Regression Modeling Strategies* [-@harrell2015regression] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text provided in supplemental materials. 
+
+
+- quantify predictive ability of each predictors, i.e. which predictor is most dominant in determine whether a passenger will survive 
+
+- interactions between predictors 
+
+- whether the *Women and children first* policy is respected 
+
+
+
+# Exploration
+
+Before any analysis, let's first exclude those variables that bring little insight to prediction: `name`, `embarked`, `body`, `cabin`^[because this is primarily an identification for class], `home.dest`. Then, a nice summary of all existing variables in the data is given by the `Hmisc::describle` function
+
+
+```{r, echo = TRUE, results = "asis"}
+cols <- setdiff(names(titanic_raw), 
+                c("name", "embarked", "body", "cabin", "home.dest"))
+titanic_excluded <- titanic_raw[, cols]
+
+latex(describe(titanic_excluded), file = "", 
+      size = "small", center = "none")
+```
+
+
+There are several interesting patterns to notice
+
+- there were nearly twice as many man as women.  
+
+- the problem of missing data: 
+
+```{r, fig.height = 8, fig.width = 5.5}
+s <-summary(survived ~ age + sex + pclass +cut2(sibsp ,0:3) + cut2(parch ,0:3),
+    data =titanic_excluded)
+plot(s, main = "" , subtitles =FALSE )
+```
+
+
+male nearly twice as women: women are not allowed to travel alone 
+
+## Data missing patterns 
+
+```{r, echo = TRUE}
+plot(naclus(titanic_excluded))
+```
+
+
+# Modeling
+
+## Initial model
+
+
+## Multiple imputatiin 
+
+
+## Validation
+
+
+In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
+
+## The final model
+
+
+# Discussion 
+
+
+A more detailed explanation of some of these measures is presented in the [appendix](#assess). 
+
+
+
+
+# Conclusion 
+
+
+
+
+
+
+# (APPENDIX) Appendix {-} 
+
+# Assessment of binary logistic model {#assess}
+
+This will be Appendix A.
