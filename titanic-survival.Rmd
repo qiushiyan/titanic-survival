@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis with descriptive statistics and visualization and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, validation and intepretation as well as other relevant techniques such as multiple imputation for missing data. This analysis is fully reproducible with R code and text provided in supplemental materials. 
+   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis with descriptive statistics and visualization and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, validation and intepretation as well as other relevant techniques such as multiple imputation for missing data. This analysis is fully reproducible with all R code and text provided. 
 keywords: |
   logistic regression; multiple imputation; model validation
 bibliography: references.bib
@@ -64,7 +64,7 @@ mylatex <- function (...) {
 
 # Introduction 
 
-The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I use here comes by courtesy of [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) founded by Thomas Cason, namely `titanic3` with following variables available (table \@ref(data-dictionary)):
+The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt) with following variables available (table \@ref(data-dictionary))
 
 ```{r data-dictionary,results="asis"}
 tribble(
@@ -89,9 +89,9 @@ tribble(
 
 ```
 
-The raw data contains 1309^[Approximately 60% of all Titanic's passengers and crew, which is 2208] rows and 14 variables, with each row corresponding to the survival status of one passenger, alongside with his/her gender, age, family relations on board, ticket fare, etc. In the data there are `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
+The raw data contains information of 1309 passengers ^[Approximately 60% of all Titanic's passengers and crew, which is 2208] and 14 columns, with each row corresponding to the survival status of one passenger, alongside with his/her gender, age, family relations on board, ticket fare, etc. In the data there are `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
 
-Inspired by Dr. Frank Harrell's similar case study on the same topic in his *Regression Modeling Strategies* [-@harrell2015regression] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text provided in supplemental materials. 
+Inspired by Dr. Frank Harrell's similar case study on the same topic in his *Regression Modeling Strategies* [-@harrell2015regression] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). 
 
 
 - quantify predictive ability of each predictors, i.e. which predictor is most dominant in determine whether a passenger will survive 
