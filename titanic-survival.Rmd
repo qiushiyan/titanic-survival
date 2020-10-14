@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. It starts with exploratory analysis on survival patterns and then proceeds to modeling. I demonstrate the overall process of model fitting, adjustment, bootstrap validation and intepretation of effects as well as other relevant techniques such as multiple imputation for missing data. This analysis is made fully reproducible with all R code and text provided. 
+   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis, model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as multiple imputation for missing data. The motivation and justification behind critical statistial decision are explained. This analysis is also made fully reproducible with all R code and text provided. 
 keywords: |
   logistic regression; multiple imputation; model validation
 bibliography: references.bib
@@ -36,7 +36,10 @@ https://www.kaggle.com/mrisdal/exploring-survival-on-the-titanic/report
 
 https://www.kaggle.com/startupsci/titanic-data-science-solutions/comments
 
+https://www.newscientist.com/article/dn22119-sinking-the-titanic-women-and-children-first-myth/
+
 ```{r, include = FALSE}
+# global chunk options 
 knitr::opts_chunk$set(
   warning = FALSE,
   message = FALSE,
@@ -45,18 +48,47 @@ knitr::opts_chunk$set(
   echo = FALSE
 )
 options(prType='latex')
-library(dplyr)
-library(ggplot2)
-library(rms)
-titanic_raw <- readr::read_csv("data/titanic3.csv")
+# load libraries 
+library(dplyr) # data wrangling
+library(ggplot2) # visualization
+library(rms) # modeling
+library(mice) # imputation for missing data
+# load raw data
+titanic_raw <- readr::read_csv("data/titanic3.csv") 
+# modify Hmisc::latex
 mylatex <- function (...) {
     o <- capture.output(latex(...))
-    # this will strip /all/ line-only comments; or if you're only
-    #  interested in stripping the first such comment you could
-    #  adjust accordingly
+    # this will strip /all/ line-only comments
     o <- grep('^%', o, inv=T, value=T)
     cat(o, sep='\n')
 }
+# theme for ggplot2
+theme_clean <- function(base_size = 11,
+                      strip_text_size = 12,
+                      strip_text_margin = 5,
+                      subtitle_size = 13,
+                      subtitle_margin = 10,
+                      plot_title_size = 16,
+                      plot_title_margin = 10,
+                      ...) {
+  ret <- ggplot2::theme_minimal(base_size = base_size, ...)
+  ret$strip.text <- ggplot2::element_text(
+    hjust = 0, size = strip_text_size,
+    margin = ggplot2::margin(b = strip_text_margin)
+  )
+  ret$plot.subtitle <- ggplot2::element_text(
+    hjust = 0, size = subtitle_size,
+    margin = ggplot2::margin(b = subtitle_margin)
+  )
+  ret$plot.title <- ggplot2::element_text(
+    hjust = 0, size = plot_title_size,
+    margin = ggplot2::margin(b = plot_title_margin)
+  )
+  ret$plot.title.position <- "plot"
+  ret$panel.grid <- ggplot2::element_blank()
+  ret
+}
+theme_set(theme_clean())
 ```
 
 
@@ -64,7 +96,7 @@ mylatex <- function (...) {
 
 # Introduction 
 
-The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt) with following variables available (table \@ref(data-dictionary))
+The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt), courtesy of Philip Hind, with the following variables (table \@ref(data-dictionary))
 
 ```{r data-dictionary,results="asis"}
 tribble(
@@ -84,67 +116,158 @@ tribble(
   "body", "Body Identification Number", "",
   "home.dest", "Home/Destination", ""
 ) %>% 
-  mylatex(caption = "Data Dictionary", file = "", 
-          table.env = TRUE, position = "!b", label = "data-dictionary", size = "small")
+  mylatex(file = "", 
+          table.env = TRUE, label = "data-dictionary", size = "small",
+          caption = "Data with 1309 passengers and 14 columns")
 
 ```
 
-The raw data contains information of 1309 passengers ^[Approximately 60% of all Titanic's passengers and crew, which is 2208] and 14 columns, with each row corresponding to the survival status of one passenger, alongside with his/her gender, age, family relations on board, ticket fare, etc. In the data there are `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
+This data frame recorded the survival status 1309 Titanic passengers^[The data does not involve the crew, and the total number of passengers is said to be 1317]  alongside his/her gender, age, family relations on board, ticket fare, etc. There were `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
 
 Inspired by Dr. Frank Harrell's similar case study on the same topic in his *Regression Modeling Strategies* [-@harrell2015regression] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). 
 
 
-- quantify predictive ability of each predictors, i.e. which predictor is most dominant in determine whether a passenger will survive 
+- Quantify predictive ability of each predictors, i.e. which predictor is most dominant in determining whether a passenger will survive 
 
-- interactions between predictors 
+- Find Interactions between predictors 
 
-- whether the *Women and children first* policy is respected 
+- Whether the *Women and children first* policy is respected. After the collision, The captain explicitly issued an order for women and children to be saved first. 
+
+
+Here is a brief summary of the following sections 
+
+- [Exploration](#exploration), data preprocessing based on descriptive statistics and visualization, finish with a redundancy analysis  
 
 
 
 # Exploration
 
-Before any analysis, let's first exclude those variables that bring little insight to prediction: `name`, `embarked`, `body`, `cabin`^[because this is primarily an identification for class], `home.dest`. Then, a nice summary of all existing variables in the data is given by the `Hmisc::describle` function
+## Exploratory analysis on survival patterns {#exploratory}
+
+Before any analysis, we'll start by some data munging. First exclude those variables that bring little insight to prediction: `name`, `ticket`, `embarked`, `body`, `cabin`^[Because this was primarily an identification for class and most were missing] and `home.dest`. The `boat` column is left out for another reason, because an non-missing entry in `boat` basically means survival and missing means death^[More precisely, there were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1]. 
+
+Next, for purposes of interpretation we will transform `fare` into today's US dollars with correction for inflation. According to discussion [here](https://www.encyclopedia-titanica.org/community/threads/ticket-prices-then-and-now.5154/), we make the transformation
+
+$$
+\frac{\text{today's US dollar}}{\text{fare in 1914}} = \underbrace{5}_{\text{exchange rate then}} \times \underbrace{26}_{\text{inflation index from 1914 to 2020}}
+$$
+
+There were `r sum(titanic_raw$fare == 0, na.rm = TRUE)` passengers whose `fare` is zero, all of whom males boarding in Southampton, the start of the voyage. It is suspected that some of them may be crew members, or this could be an error in data collection. I will treat these anomalies as missing entries for simplicity. Moreover, one passenger in the 3rd class had missing value in `fare`. Given the small amount of missingness, single imputation with median `fare` conditional on class is used.  
+
+Finally, a nice summary of all existing variables in the data is given by the `Hmisc::describle` function. 
+
+
+```{r}
+# columns to include
+cols <- setdiff(names(titanic_raw), 
+                c("name", "ticket", "embarked", "boat", 
+                  "body", "cabin", "home.dest"))
+# select columns and single imputation 
+titanic <- titanic_raw[, cols] %>% 
+  mutate(fare = case_when(
+    (fare == 0 | is.na(fare)) & pclass == "1st" ~ 61.38,
+    (fare == 0 | is.na(fare)) & pclass == "2nd" ~ 15.05,
+    (fare == 0 | is.na(fare)) & pclass == "3rd" ~ 8.05,
+    TRUE ~ fare
+  ))
+# 1914 pounds to us dollars
+titanic$fare <- titanic$fare * 5 * 26
+
+
+```
 
 
 ```{r, echo = TRUE, results = "asis"}
-cols <- setdiff(names(titanic_raw), 
-                c("name", "embarked", "body", "cabin", "home.dest"))
-titanic_excluded <- titanic_raw[, cols]
-
-latex(describe(titanic_excluded), file = "", 
-      size = "small", center = "none")
+# print a summary for the data
+titanic %>%
+  mutate(survived = factor(survived)) %>% 
+  describe() %>%
+  latex(file = "", size = "small", center = "none")
 ```
 
 
-There are several interesting patterns to notice
+There are several interesting patterns to notice ^[Though this may not be relevant to the model, it is still an surprising discovery that it wasn't until the late 19th century that the idea of women traveling alone gained ground. As a result, there were nearly twice as many males passengers as females on Titanic.  In fact, only 40% female passengers have no family accompanies on the ship] 
 
-- there were nearly twice as many man as women.  
+- `age` has a nice distribution with 80% observations falling between 14 and 50. Yet it is the only variable suffering from missing values after excluding irrelevant columns. 
 
-- the problem of missing data: 
+- Both `sibsp` and `parch`
 
-```{r, fig.height = 8, fig.width = 5.5}
-s <-summary(survived ~ age + sex + pclass +cut2(sibsp ,0:3) + cut2(parch ,0:3),
-    data =titanic_excluded)
-plot(s, main = "" , subtitles =FALSE )
+- The distribution of `fare` is heavily right skewed, caused by the large amount of third class passengers who make do with cheap cabins, as shown in figure \@ref(fig:skew-fare). This may suggest a log transformation in the model. 
+
+
+
+```{r skew-fare, fig.cap = "(ref:skew-fare)", fig.height = 3, fig.width = 5}
+ggplot(titanic) + 
+  geom_histogram(aes(fare), 
+                 color = "black", fill = "midnightblue", 
+                 alpha = 0.4, bins = 50) + 
+  facet_wrap(~ pclass, scales = "free_x") + 
+  scale_x_log10(labels = scales::label_number_si()) + 
+  labs(y = NULL, x = NULL) + 
+  theme(axis.text.x = element_text(size = 8), 
+        strip.text = element_text(size = 10))
+```
+
+(ref:skew-fare) More than 75% of the third class passengers (700-plus in total) purchased tickets with price lower than $2000, while the median fare for second and first class is $3861. X axis is on log 10 scale
+
+
+- Approximately 20% `age` is missing. This calls for a necessary imputation method as we will see later, that survival can exhibit  
+
+```{r, fig.height = 7, fig.width  = 4}
+s <- summary(survived ~ age + sex + pclass + fare + 
+               cut2(sibsp, 0:3) + cut2(parch, 0:3),
+    data = titanic)
+plot(s, main = "" , subtitles = FALSE, cex = 0.8)
 ```
 
 
-male nearly twice as women: women are not allowed to travel alone 
+
+Finally, redundant analysis 
+
+```{r, comment = ""}
+redun(~ pclass  + sex + age + cut2(sibsp, 0:3) + cut2(parch, 0:3) + 
+        fare, 
+      minfreq = 40, data = titanic)
+```
+
 
 ## Data missing patterns 
 
+Here we use the data before exluding irrelevant columns 
+
 ```{r, echo = TRUE}
-plot(naclus(titanic_excluded))
+plot(naclus(titanic_raw))
 ```
+
+There are some simple workarounds 
+
+- complete-case analysis: That is, we delete all incomplete observations. Needless to say this will translate into a major harm on sample size since over 60% of `boat` are missing, not to mention other columns. Even if we remove `boat` and then delete rows with missing `age` we still lose over 1/5 of data. Moreover, figures in \@ref(exploratory) have shed light on the relatively strong influence of `age` on survival. Also, the deletion of incomplete observations assumes date are missing completely at random (MCAR). When it's not the case, this could severly bias estimates of coefficients [@van2018flexible]
+
+- single imputation: 
+
+
+- multiple imputation 
+
+
+For demonstration purposes I will fit two decision trees to predict
+
+
+
 
 
 # Modeling
 
 ## Initial model
 
+First and foremost, 
+
+
 
 ## Multiple imputatiin 
+
+
+
+
 
 
 ## Validation
