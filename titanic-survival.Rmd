@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis, model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as multiple imputation for missing data. The motivation and justification behind critical statistial decision are explained. This analysis is also made fully reproducible with all R code and text provided. 
+   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis, model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistial decision are explained. This analysis is also made fully reproducible with R code and text provided. 
 keywords: |
   logistic regression; multiple imputation; model validation
 bibliography: references.bib
@@ -98,6 +98,11 @@ theme_set(theme_clean())
 
 The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt), courtesy of Philip Hind, with the following variables (table \@ref(data-dictionary))
 
+
+
+
+
+
 ```{r data-dictionary,results="asis"}
 tribble(
   ~ Variable, ~ Definition, ~ Note,
@@ -122,9 +127,9 @@ tribble(
 
 ```
 
-This data frame recorded the survival status 1309 Titanic passengers^[The data does not involve the crew, and the total number of passengers is said to be 1317]  alongside his/her gender, age, family relations on board, ticket fare, etc. There were `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
+This data frame recorded the survival status 1309 Titanic passengers^[The data does not involve crew members, and the total number of passengers is said to be 1317]  alongside his/her gender, age, family relations on board, ticket fare, etc. There were `r (titanic_raw %>% count(survived))[["n"]][[1]]` victims and `r (titanic_raw %>% count(survived))[["n"]][[2]]` survivors in total. 
 
-Inspired by Dr. Frank Harrell's similar case study on the same topic in his *Regression Modeling Strategies* [-@harrell2015regression] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). 
+This case study has been greatly inspired by Dr. Frank Harrell's similar one in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). 
 
 
 - Quantify predictive ability of each predictors, i.e. which predictor is most dominant in determining whether a passenger will survive 
@@ -149,10 +154,10 @@ Before any analysis, we'll start by some data munging. First exclude those varia
 Next, for purposes of interpretation we will transform `fare` into today's US dollars with correction for inflation. According to discussion [here](https://www.encyclopedia-titanica.org/community/threads/ticket-prices-then-and-now.5154/), we make the transformation
 
 $$
-\frac{\text{today's US dollar}}{\text{fare in 1914}} = \underbrace{5}_{\text{exchange rate then}} \times \underbrace{26}_{\text{inflation index from 1914 to 2020}}
+\frac{\text{today's US dollar}}{\text{fare in 1912}} \approx \underbrace{5}_{\text{exchange rate then}} \times \underbrace{26}_{\text{inflation index from 1912 to 2020}}
 $$
 
-There were `r sum(titanic_raw$fare == 0, na.rm = TRUE)` passengers whose `fare` is zero, all of whom males boarding in Southampton, the start of the voyage. It is suspected that some of them may be crew members, or this could be an error in data collection. I will treat these anomalies as missing entries for simplicity. Moreover, one passenger in the 3rd class had missing value in `fare`. Given the small amount of missingness, single imputation with median `fare` conditional on class is used.  
+There were `r sum(titanic_raw$fare == 0, na.rm = TRUE)` passengers whose `fare` is zero, all of whom males boarding in Southampton, the start of the voyage. It is suspected that some of them may be falsely included crew members, or this could be an error in data collection. I will treat these anomalies as missing entries for simplicity. Moreover, one passenger in the 3rd class had missing value in `fare`. Given the small amount of missingness, single imputation with median `fare` conditional on class is used.  
 
 Finally, a nice summary of all existing variables in the data is given by the `Hmisc::describle` function. 
 
@@ -170,7 +175,7 @@ titanic <- titanic_raw[, cols] %>%
     (fare == 0 | is.na(fare)) & pclass == "3rd" ~ 8.05,
     TRUE ~ fare
   ))
-# 1914 pounds to us dollars
+# 1912 pounds to us dollars
 titanic$fare <- titanic$fare * 5 * 26
 
 
@@ -188,9 +193,9 @@ titanic %>%
 
 There are several interesting patterns to notice ^[Though this may not be relevant to the model, it is still an surprising discovery that it wasn't until the late 19th century that the idea of women traveling alone gained ground. As a result, there were nearly twice as many males passengers as females on Titanic.  In fact, only 40% female passengers have no family accompanies on the ship] 
 
-- `age` has a nice distribution with 80% observations falling between 14 and 50. Yet it is the only variable suffering from missing values after excluding irrelevant columns. 
+- `age` has roughly 20% missingness. On the other hand, the variable has a nice distribution with 80% known observations  falling between 14 
 
-- Both `sibsp` and `parch`
+- Both `sibsp` and `parch` rarely have instances larger than 3, and can be readily categorized without losing too much information. 
 
 - The distribution of `fare` is heavily right skewed, caused by the large amount of third class passengers who make do with cheap cabins, as shown in figure \@ref(fig:skew-fare). This may suggest a log transformation in the model. 
 
@@ -241,7 +246,7 @@ plot(naclus(titanic_raw))
 
 There are some simple workarounds 
 
-- complete-case analysis: That is, we delete all incomplete observations. Needless to say this will translate into a major harm on sample size since over 60% of `boat` are missing, not to mention other columns. Even if we remove `boat` and then delete rows with missing `age` we still lose over 1/5 of data. Moreover, figures in \@ref(exploratory) have shed light on the relatively strong influence of `age` on survival. Also, the deletion of incomplete observations assumes date are missing completely at random (MCAR). When it's not the case, this could severly bias estimates of coefficients [@van2018flexible]
+- complete-case analysis: That is, we delete all incomplete observations. Needless to say this will translate into a major harm on sample size since over 60% of `boat` are missing, not to mention other columns. Even if we remove `boat` and then delete rows with missing `age` we still lose over 1/5 of data. Moreover, figures in \@ref(exploratory) have shed light on the relatively strong influence of `age` on survival. Also, the deletion of incomplete observations assumes date are missing completely at random (MCAR). When it's not the case, this could severely bias estimates of coefficients [@van2018flexible]
 
 - single imputation: 
 
@@ -263,7 +268,7 @@ First and foremost,
 
 
 
-## Multiple imputatiin 
+## Multiple imputation 
 
 
 
@@ -272,6 +277,7 @@ First and foremost,
 
 ## Validation
 
+There will not be another Titanic, so what is the point in validation since the model will not be used in prediction in all likelihood? 
 
 In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
 
@@ -281,7 +287,7 @@ In the award-winning solution to this legendary dataset presented by IBM Watson,
 # Discussion 
 
 
-A more detailed explanation of some of these measures is presented in the [appendix](#assess). 
+A more detailed explanation of some of these measures is presented in the [appendix](#measures). 
 
 
 
@@ -295,6 +301,14 @@ A more detailed explanation of some of these measures is presented in the [appen
 
 # (APPENDIX) Appendix {-} 
 
-# Assessment of binary logistic model {#assess}
+# Measures used in valiation {#measures}
 
 This will be Appendix A.
+
+
+# Techinical information
+
+```{r, comment = ""}
+sessionInfo()
+```
+
