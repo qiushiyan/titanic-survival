@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This short analysis showcases the development of a binary logistic model with spline transformations on predictors, to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis, model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistial decision are explained. This analysis is also made fully reproducible with R code and text provided. 
+   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis, feature enginerring, model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistial decisions are explained. This analysis is also made fully reproducible with R code and text provided. 
 keywords: |
   logistic regression; multiple imputation; model validation
 bibliography: references.bib
@@ -26,6 +26,10 @@ output:
 ---
 
 http://www.crema-research.ch/papers/2009-03.pdf
+
+- Do human
+beings behave more in line with the selfish *homo oeconomicus*, where everybody
+is out for himself or herself and possibly even puts other people’s lives in danger
 
 https://www.insider.com/titanic-secrets-facts-2018-4#at-the-memorial-of-frederick-fleet-one-of-the-lookouts-a-prankster-left-a-pair-of-binoculars-with-a-note-reading-sorry-for-bringing-these-100-years-too-late-8
 
@@ -47,6 +51,7 @@ knitr::opts_chunk$set(
   fig.align = "center",
   echo = FALSE
 )
+# latex print optiosn
 options(prType='latex')
 # load libraries 
 library(dplyr) # data wrangling
@@ -88,7 +93,7 @@ theme_clean <- function(base_size = 11,
   ret$panel.grid <- ggplot2::element_blank()
   ret
 }
-theme_set(theme_clean())
+ggplot2::theme_set(theme_clean())
 ```
 
 
@@ -96,7 +101,7 @@ theme_set(theme_clean())
 
 # Introduction 
 
-The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given sex, age, class, etc. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt), courtesy of Philip Hind, with the following variables (table \@ref(data-dictionary))
+The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others, in which one major interest is to predict possibility of survival given a number of characteristics. There are several variants of this data existed on the web, the one I will be using is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), namely [`titanic3`](http://biostat.mc.vanderbilt.edu/wiki/pub/Main/DataSets/titanic3info.txt), courtesy of Philip Hind, with the following variables (table \@ref(data-dictionary))
 
 
 
@@ -132,11 +137,19 @@ This data frame recorded the survival status 1309 Titanic passengers^[The data d
 This case study has been greatly inspired by Dr. Frank Harrell's similar one in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@R-base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). 
 
 
+
+- Does socioeconomic advantage mean better chance of survival? If this is the case, people with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people.  
+
+- people in their prime
+
 - Quantify predictive ability of each predictors, i.e. which predictor is most dominant in determining whether a passenger will survive 
 
-- Find Interactions between predictors 
+- Find Interactions between predictors. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving]^[The average peak reproductive period in females is between the ages of 16 and 35.]. Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
-- Whether the *Women and children first* policy is respected. After the collision, The captain explicitly issued an order for women and children to be saved first. 
+- Whether the *Women and children first* policy is respected. After the collision, The captain explicitly issued an order for women and children to be saved first. ^[Though there is no international maritime law that
+enforce this chivalry spirit.]
+
+- For those who traveled alone with no family relations on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, 
 
 
 Here is a brief summary of the following sections 
@@ -145,11 +158,11 @@ Here is a brief summary of the following sections
 
 
 
-# Exploration
+# Exploration {#exploratory}
 
-## Exploratory analysis on survival patterns {#exploratory}
+## Data processing and descriptive statistics
 
-Before any analysis, we'll start by some data munging. First exclude those variables that bring little insight to prediction: `name`, `ticket`, `embarked`, `body`, `cabin`^[Because this was primarily an identification for class and most were missing] and `home.dest`. The `boat` column is left out for another reason, because an non-missing entry in `boat` basically means survival and missing means death^[More precisely, there were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1]. 
+Before any analysis, we'll start by some data munging. First exclude those variables that hardly bring any insight to the possibility of survival: `name`, `ticket`^[There may be some reasons to include ticket number since their prefix could represent placement of the cabins within the ship. However, the use of such a predictor would bring excessive degrees of freedom to the model. And their poor distribution would be declared redundant by redundant analysis (later) anyway.],  `body`, `cabin`^[Because this was primarily an identification for class and most were missing.] and `home.dest`. The `boat` column is left out for another reason, because an non-missing entry in `boat` basically means survival and missing means death. For this reason "survive" and "get a life boat" is used interchangeably in the analysis. ^[More precisely, there were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1.]. 
 
 Next, for purposes of interpretation we will transform `fare` into today's US dollars with correction for inflation. According to discussion [here](https://www.encyclopedia-titanica.org/community/threads/ticket-prices-then-and-now.5154/), we make the transformation
 
@@ -157,7 +170,14 @@ $$
 \frac{\text{today's US dollar}}{\text{fare in 1912}} \approx \underbrace{5}_{\text{exchange rate then}} \times \underbrace{26}_{\text{inflation index from 1912 to 2020}}
 $$
 
-There were `r sum(titanic_raw$fare == 0, na.rm = TRUE)` passengers whose `fare` is zero, all of whom males boarding in Southampton, the start of the voyage. It is suspected that some of them may be falsely included crew members, or this could be an error in data collection. I will treat these anomalies as missing entries for simplicity. Moreover, one passenger in the 3rd class had missing value in `fare`. Given the small amount of missingness, single imputation with median `fare` conditional on class is used.  
+
+
+At 
+
+
+
+
+
 
 Finally, a nice summary of all existing variables in the data is given by the `Hmisc::describle` function. 
 
@@ -165,24 +185,16 @@ Finally, a nice summary of all existing variables in the data is given by the `H
 ```{r}
 # columns to include
 cols <- setdiff(names(titanic_raw), 
-                c("name", "ticket", "embarked", "boat", 
+                c("name", "ticket", "boat", 
                   "body", "cabin", "home.dest"))
-# select columns and single imputation 
-titanic <- titanic_raw[, cols] %>% 
-  mutate(fare = case_when(
-    (fare == 0 | is.na(fare)) & pclass == "1st" ~ 61.38,
-    (fare == 0 | is.na(fare)) & pclass == "2nd" ~ 15.05,
-    (fare == 0 | is.na(fare)) & pclass == "3rd" ~ 8.05,
-    TRUE ~ fare
-  ))
+# select columns
+titanic <- titanic_raw[, cols] 
 # 1912 pounds to us dollars
 titanic$fare <- titanic$fare * 5 * 26
-
-
 ```
 
 
-```{r, echo = TRUE, results = "asis"}
+```{r, echo = FALSE, results = "asis"}
 # print a summary for the data
 titanic %>%
   mutate(survived = factor(survived)) %>% 
@@ -218,29 +230,38 @@ ggplot(titanic) +
 
 - Approximately 20% `age` is missing. This calls for a necessary imputation method as we will see later, that survival can exhibit  
 
-```{r, fig.height = 7, fig.width  = 4}
+```{r univariate, fig.height = 7, fig.width  = 4, fig.cap = "Summary of relationship between survival and each predictor"}
 s <- summary(survived ~ age + sex + pclass + fare + 
-               cut2(sibsp, 0:3) + cut2(parch, 0:3),
+               cut2(sibsp, 0:3) + cut2(parch, 0:3) + embarked,
     data = titanic)
-plot(s, main = "" , subtitles = FALSE, cex = 0.8)
+plot(s, main = "" , subtitles = FALSE, cex.axis = 0.1)
 ```
 
+
+Given this results, the last step in  
 
 
 Finally, redundant analysis 
 
 ```{r, comment = ""}
 redun(~ pclass  + sex + age + cut2(sibsp, 0:3) + cut2(parch, 0:3) + 
-        fare, 
-      minfreq = 40, data = titanic)
+        fare + embarked, data = titanic)
 ```
-
 
 ## Data missing patterns 
 
-Here we use the data before exluding irrelevant columns 
+There were `r sum(titanic_raw$fare == 0, na.rm = TRUE)` passengers whose `fare` is zero, all of whom males boarding in Southampton, the start of the voyage. It is suspected that some of them may be falsely included crew members, or this could be an error in data collection. I will treat these anomalies as missing entries for simplicity. 
+
+```{r}
+titanic <- titanic %>% 
+  mutate(fare = na_if(fare, 0))
+```
+
+
+Here we use the data before excluding irrelevant columns 
 
 ```{r, echo = TRUE}
+naplot(naclus(titanic), "na per var")
 plot(naclus(titanic_raw))
 ```
 
@@ -260,15 +281,36 @@ For demonstration purposes I will fit two decision trees to predict
 
 
 
-# Modeling
+## Loess regression for nonlinear pattern 
 
-## Initial model
+The loess is a common nonparametric regression method to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the proportion of positive cases near the neighborhood of $x_0$ ^[with varying weights according to their distance to $x_0$]. If the trend of a loess curve shows nonmonotoncity, it is reasonbale to include that nonlienarity relationship in the model, e.g., modeling the predicotr with polynomial transformation or with splines. 
 
-First and foremost, 
-
+figure \@ref(fig:univariate)
 
 
 ## Multiple imputation 
+
+
+
+
+# Modeling
+
+the choice of model. In this setting, it is obvious that we would prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the true value of our model consist not in the decision on who will survive, but in what characteristics would increase or decrease the possibility of survival. This idea has ruled out most of the black box machine learning models for classification, say, random forest, support vector machines and neural network. Not only are they not intrinsically probability oriented, it is hard to interpret main effects and interactions as everything seems to be interacted with one another. 
+
+
+## Saturated model 
+
+First and foremost, 
+
+The limiting sample size for binary outcome would be the number of minority class, in our case `r sum(titanic$survived == 1)`. Using the 15:1 rule, that will give us some confidence spending roughly `r round(sum(titanic$survived == 1) / 15)` parameters or degrees of freedom. 
+
+
+This plot is useful in identifying weather the relationship between survival status and any predictor is flat ^[A misuse of this plot would be checking nonlinearity. Even with spline transformation and large corrected $\chi^2$ there is no guarantee for nonlinearity.]. 
+
+
+likely shrinkage
+
+
 
 
 
@@ -277,7 +319,9 @@ First and foremost,
 
 ## Validation
 
-There will not be another Titanic, so what is the point in validation since the model will not be used in prediction in all likelihood? 
+There will not be another Titanic, and any model on Titanic will not be used for prediction. Therefore, the goal of model validation is primarily to provide quantify the degree of overfitting with various bias-corrected measures. 
+
+
 
 In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
 
@@ -285,6 +329,19 @@ In the award-winning solution to this legendary dataset presented by IBM Watson,
 
 
 # Discussion 
+
+
+The most decisive explanation for such effect is that first-class passengers had better access to information about the
+imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers had no idea where the lifeboats were located (safety drills for all passengers were introduced after the Titanic disaster), and they did not know how to reach the upper decks where the lifeboats were stowed.  
+
+ Wyn Craig Wade
+
+> Undoubtedly, the worst barriers were the ones within the
+steerage passengers themselves. Years of conditioning as
+third-class citizens led a great many of them to give up hope
+as soon as the crisis became evident. ..Barriers to steerage?
+Yes, but of a kind less indictable to the White Star Line than
+to the whole of civilization.
 
 
 A more detailed explanation of some of these measures is presented in the [appendix](#measures). 
@@ -306,9 +363,11 @@ A more detailed explanation of some of these measures is presented in the [appen
 This will be Appendix A.
 
 
-# Techinical information
+# Original Computing Environment
 
-```{r, comment = ""}
+```{r, comment = "", echo = TRUE}
 sessionInfo()
 ```
 
+
+\nocite{*}
