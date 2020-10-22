@@ -1,11 +1,11 @@
-@Manual{R-base,
-  title = {R: A Language and Environment for Statistical Computing},
-  author = {{R Core Team}},
-  organization = {R Foundation for Statistical Computing},
-  address = {Vienna, Austria},
-  year = {2020},
-  url = {https://www.R-project.org/},
-}
+@misc{hind, 
+  url={https://www.encyclopedia-titanica.org/}, 
+  year={1999},
+  journal={Encyclopedia Titanica}, 
+  publisher={Encyclopedia Titanica}, 
+  author={Hind, Philip}
+} 
+
 
 @article{roecker1991prediction,
   title={Prediction error and its estimation for subset-selected models},
@@ -32,7 +32,48 @@
   publisher={CRC press}
 }
 
-@Manual{R-ggplot2,
+
+@article{frey2009surviving,
+  title={Surviving the Titanic disaster: economic, natural and social determinants},
+  author={Frey, Bruno S and Savage, David A and Torgler, Benno},
+  year={2009},
+  publisher={CESifo Working Paper Series}
+}
+
+@Manual{base,
+  title = {R: A Language and Environment for Statistical Computing},
+  author = {{R Core Team}},
+  organization = {R Foundation for Statistical Computing},
+  address = {Vienna, Austria},
+  year = {2020},
+  url = {https://www.R-project.org/},
+}
+
+@Manual{bookdown,
+  title = {bookdown: Authoring Books and Technical Documents with R Markdown},
+  author = {Yihui Xie},
+  year = {2020},
+  note = {R package version 0.21},
+  url = {https://github.com/rstudio/bookdown},
+}
+
+@Manual{dplyr,
+  title = {dplyr: A Grammar of Data Manipulation},
+  author = {Hadley Wickham and Romain François and Lionel {              Henry} and Kirill Müller},
+  year = {2020},
+  note = {R package version 1.0.2},
+  url = {https://CRAN.R-project.org/package=dplyr},
+}
+
+@Manual{Formula,
+  title = {Formula: Extended Model Formulas},
+  author = {Achim Zeileis and Yves Croissant},
+  year = {2020},
+  note = {R package version 1.2-4},
+  url = {https://CRAN.R-project.org/package=Formula},
+}
+
+@Manual{ggplot2,
   title = {ggplot2: Create Elegant Data Visualisations Using the Grammar of Graphics},
   author = {Hadley Wickham and Winston Chang and Lionel Henry and Thomas Lin Pedersen and Kohske Takahashi and Claus Wilke and Kara Woo and Hiroaki Yutani and Dewey Dunnington},
   year = {2020},
@@ -40,16 +81,47 @@
   url = {https://CRAN.R-project.org/package=ggplot2},
 }
 
-@Manual{R-dplyr,
-  title = {dplyr: A Grammar of Data Manipulation},
-  author = {Hadley Wickham and Romain François and Lionel {
-             Henry} and Kirill Müller},
+@Manual{Hmisc,
+  title = {Hmisc: Harrell Miscellaneous},
+  author = {Harrell, Jr., Frank E},
   year = {2020},
-  note = {R package version 1.0.2},
-  url = {https://CRAN.R-project.org/package=dplyr},
+  note = {R package version 4.4-1},
+  url = {https://CRAN.R-project.org/package=Hmisc},
 }
 
-@Manual{R-rms,
+@Manual{knitr,
+  title = {knitr: A General-Purpose Package for Dynamic Report Generation in R},
+  author = {Yihui Xie},
+  year = {2020},
+  note = {R package version 1.30},
+  url = {https://yihui.org/knitr/},
+}
+
+@Manual{lattice,
+  title = {lattice: Trellis Graphics for R},
+  author = {Deepayan Sarkar},
+  year = {2020},
+  note = {R package version 0.20-41},
+  url = {http://lattice.r-forge.r-project.org/},
+}
+
+@Manual{mice,
+  title = {mice: Multivariate Imputation by Chained Equations},
+  author = {Stef {van Buuren} and Karin Groothuis-Oudshoorn},
+  year = {2020},
+  note = {R package version 3.11.0},
+  url = {https://CRAN.R-project.org/package=mice},
+}
+
+@Manual{rmarkdown,
+  title = {rmarkdown: Dynamic Documents for R},
+  author = {JJ Allaire and Yihui Xie and Jonathan McPherson and Javier Luraschi and Kevin Ushey and Aron Atkins and Hadley Wickham and Joe Cheng and Winston Chang and Richard Iannone},
+  year = {2020},
+  note = {R package version 2.5},
+  url = {https://github.com/rstudio/rmarkdown},
+}
+
+@Manual{rms,
   title = {rms: Regression Modeling Strategies},
   author = {Frank E. {Harrell, Jr.}},
   year = {2020},
@@ -57,23 +129,7 @@
   url = {https://CRAN.R-project.org/package=rms},
 }
 
-@Manual{R-readr,
-  title = {readr: Read Rectangular Text Data},
-  author = {Hadley Wickham and Jim Hester},
-  year = {2020},
-  note = {R package version 1.4.0},
-  url = {https://CRAN.R-project.org/package=readr},
-}
-
-@Manual{R-mice,
-  title = {mice: Multivariate Imputation by Chained Equations},
-  author = {Stef Van Buuren and Karin Groothuis-Oudshoorn},
-  year = {2020},
-  note = {R package version 3.11.0},
-  url = {https://CRAN.R-project.org/package=mice},
-}
-
-@Manual{R-rticles,
+@Manual{rticles,
   title = {rticles: Article Formats for R Markdown},
   author = {JJ Allaire and Yihui Xie and {R Foundation} and Hadley Wickham and {Journal of Statistical Software} and Ramnath  Vaidyanathan and {Association for Computing Machinery} and Carl Boettiger and {Elsevier} and Karl Broman and Kirill Mueller and Bastiaan Quast and Randall  Pruim and Ben Marwick and Charlotte Wickham and Oliver Keyes and Miao Yu and Daniel Emaasit and Thierry Onkelinx and Alessandro Gasparini and Marc-Andre Desautels and Dominik Leutnant and {MDPI} and {Taylor and Francis} and Oguzhan Ögreden and Dalton Hance and Daniel Nüst and Petter Uvesten and Elio Campitelli and John Muschelli and Alex Hayes and Zhian N. Kamvar and Noam Ross and Robrecht Cannoodt and Duncan Luguern and David M. Kaplan and Sebastian Kreutzer and Shixiang Wang and Jay Hesselberth and Christophe Dervieux},
   year = {2020},
@@ -81,19 +137,121 @@
   url = {https://github.com/rstudio/rticles},
 }
 
-@Manual{R-rmarkdown,
-  title = {rmarkdown: Dynamic Documents for R},
-  author = {JJ Allaire and Yihui Xie and Jonathan McPherson and Javier Luraschi and Kevin Ushey and Aron Atkins and Hadley Wickham and Joe Cheng and Winston Chang and Richard Iannone},
-  year = {2020},
-  note = {R package version 2.4},
-  url = {https://github.com/rstudio/rmarkdown},
+@Manual{SparseM,
+  title = {SparseM: Sparse Linear Algebra},
+  author = {Roger Koenker and Pin Ng},
+  year = {2019},
+  note = {R package version 1.78},
+  url = {http://www.econ.uiuc.edu/~roger/research/sparse/sparse.html},
 }
 
+@Manual{survival,
+  title = {survival: Survival Analysis},
+  author = {Terry M Therneau},
+  year = {2020},
+  note = {R package version 3.1-12},
+  url = {https://github.com/therneau/survival},
+}
 
-@article{frey2009surviving,
-  title={Surviving the Titanic disaster: economic, natural and social determinants},
-  author={Frey, Bruno S and Savage, David A and Torgler, Benno},
-  year={2009},
-  publisher={CESifo Working Paper Series}
+@Book{bookdown2016,
+  title = {bookdown: Authoring Books and Technical Documents with {R} Markdown},
+  author = {Yihui Xie},
+  publisher = {Chapman and Hall/CRC},
+  address = {Boca Raton, Florida},
+  year = {2016},
+  note = {ISBN 978-1138700109},
+  url = {https://github.com/rstudio/bookdown},
+}
+
+@Article{Formula2010,
+  title = {Extended Model Formulas in {R}: Multiple Parts and Multiple Responses},
+  author = {Achim Zeileis and Yves Croissant},
+  journal = {Journal of Statistical Software},
+  year = {2010},
+  volume = {34},
+  number = {1},
+  pages = {1--13},
+  doi = {10.18637/jss.v034.i01},
+}
+
+@Book{ggplot22016,
+  author = {Hadley Wickham},
+  title = {ggplot2: Elegant Graphics for Data Analysis},
+  publisher = {Springer-Verlag New York},
+  year = {2016},
+  isbn = {978-3-319-24277-4},
+  url = {https://ggplot2.tidyverse.org},
+}
+
+@Book{knitr2015,
+  title = {Dynamic Documents with {R} and knitr},
+  author = {Yihui Xie},
+  publisher = {Chapman and Hall/CRC},
+  address = {Boca Raton, Florida},
+  year = {2015},
+  edition = {2nd},
+  note = {ISBN 978-1498716963},
+  url = {https://yihui.org/knitr/},
+}
+
+@InCollection{knitr2014,
+  booktitle = {Implementing Reproducible Computational Research},
+  editor = {Victoria Stodden and Friedrich Leisch and Roger D. Peng},
+  title = {knitr: A Comprehensive Tool for Reproducible Research in {R}},
+  author = {Yihui Xie},
+  publisher = {Chapman and Hall/CRC},
+  year = {2014},
+  note = {ISBN 978-1466561595},
+  url = {http://www.crcpress.com/product/isbn/9781466561595},
+}
+
+@Book{lattice2008,
+  title = {Lattice: Multivariate Data Visualization with R},
+  author = {Deepayan Sarkar},
+  publisher = {Springer},
+  address = {New York},
+  year = {2008},
+  note = {ISBN 978-0-387-75968-5},
+  url = {http://lmdvr.r-forge.r-project.org},
+}
+
+@Article{mice2011,
+  title = {{mice}: Multivariate Imputation by Chained Equations in R},
+  author = {Stef {van Buuren} and Karin Groothuis-Oudshoorn},
+  journal = {Journal of Statistical Software},
+  year = {2011},
+  volume = {45},
+  number = {3},
+  pages = {1-67},
+  url = {https://www.jstatsoft.org/v45/i03/},
+}
+
+@Book{rmarkdown2018,
+  title = {R Markdown: The Definitive Guide},
+  author = {Yihui Xie and J.J. Allaire and Garrett Grolemund},
+  publisher = {Chapman and Hall/CRC},
+  address = {Boca Raton, Florida},
+  year = {2018},
+  note = {ISBN 9781138359338},
+  url = {https://bookdown.org/yihui/rmarkdown},
+}
+
+@Book{rmarkdown2020,
+  title = {R Markdown Cookbook},
+  author = {Yihui Xie and Christophe Dervieux and Emily Riederer},
+  publisher = {Chapman and Hall/CRC},
+  address = {Boca Raton, Florida},
+  year = {2020},
+  note = {ISBN 9780367563837},
+  url = {https://bookdown.org/yihui/rmarkdown-cookbook},
+}
+
+@Book{survival-book,
+  title = {Modeling Survival Data: Extending the {C}ox Model},
+  author = {{Terry M. Therneau} and {Patricia M. Grambsch}},
+  year = {2000},
+  publisher = {Springer},
+  address = {New York},
+  isbn = {0-387-98784-3},
 }
 

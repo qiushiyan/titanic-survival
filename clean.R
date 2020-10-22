@@ -1,0 +1,65 @@
+library(dplyr)
+library(forcats)
+
+# 1. exclude some columns 
+# 2. collapse low frequency levels in categorical variables 
+# 3. create new columns: title
+# 4. join another table to companion info
+
+# source: encyclopedia-titanica.org
+titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xlsx", 
+                               skip = 1, n_max = 2208) %>%
+  janitor::clean_names() %>%
+  mutate(survived = if_else(survived == "SAVED", 1, 0),
+         age = case_when(
+          grepl("m", age) ~ as.character(round(as.numeric(gsub("m", "", "10m"))/12, 1)), # so that "10m" is now "0.8"
+          TRUE ~ age
+  ) %>% as.numeric(),
+         name = case_when(
+          name == "BANFI,  Ugo" ~ "BANFI, Mr Ugo",
+          name == "WALSH,  Kate" ~ "WALSH, Mrs Kate",
+          TRUE ~ name),
+        nationality = case_when(
+          name == "FRASER, Mr J." ~ "English",
+          name == "MCANDREWS, Mr William" ~ "English",
+          name == "MELLOR, Mr Arthur" ~ "English",
+          TRUE ~ nationality
+        ),
+        nationality = fct_lump_min(nationality, min = 50),
+        class_dept = case_when(
+          grepl("Staff|Musician|Guarantee Group", class_dept)  ~ "staff",
+          grepl("3rd Class Passenger", class_dept) ~ "3rd",
+          grepl("2nd Class Passenger", class_dept) ~ "2nd",
+          grepl("1st Class Passenger", class_dept) ~ "1st",
+          grepl("Crew", class_dept) ~ "crew",
+        ),
+        title = gsub('(.*, )|(\\.?\\s.*)', '', name) %>% 
+          fct_collapse("Mr" = "Mr",
+                       "Miss" = "Miss",
+                       "Mrs" = "Mrs",
+                       other_level = "other")) %>% 
+  select(-name, -born, -died, -ticket, -cabin, -fare, -occupation, -body, -boat) %>% 
+  relocate(survived) 
+
+
+# table with family relations 
+rel <- read_csv("data/query_result.csv") %>% 
+  select(url = ETURL,
+         age_approx = dob_approx,
+         spouse = STAT_spouse, 
+         sibling = STAT_sibling,
+         parent = STAT_parent,
+         children = STAT_children) %>% 
+  mutate(across(3:6, ~ as.numeric(.) %>% coalesce(0)))
+
+d <- titanic %>% 
+  left_join(rel, by = "url") %>% 
+  select(-url) 
+
+# set approximate age to missing
+d[which(d$age_approx != 0), "age"] <- NA 
+d$age_approx <- NULL
+
+readr::write_csv(d, "data/titanic.csv")
+
+
