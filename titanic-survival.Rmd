@@ -348,7 +348,15 @@ There are some simple workarounds
 - multiple imputation 
 
 
-## 
+```{r, cache = TRUE}
+# predictiv mean matching to generate 30 complete datasets
+imp <- mice(t, method = "pmm", m = 30, printFlag = FALSE)
+```
+
+```{r}
+densityplot(imp)
+```
+
 
 
 ## Model fitting and penalization 
@@ -357,6 +365,16 @@ https://www.encyclopedia-titanica.org/community/threads/passengers-who-spoke-oth
 
 Since the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd Class were traveling in family or neighbourhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
 
+
+
+```{r, include = FALSE}
+f2 <- fit.mult.impute(survived ~ rcs(age, 5) * gender + class_dept +   nationality + spouse + sibling + parent + children, lrm, imp, data = t)
+```
+
+
+```{r, results="asis"}
+mylatex(anova(f2), file = "")
+```
 
 
 ## Validation and calibration {#validation}
