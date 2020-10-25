@@ -43,7 +43,7 @@ titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xl
 
 
 # table with family relations 
-rel <- read_csv("data/query_result.csv") %>% 
+rel <- readr::read_csv("data/query_result.csv") %>% 
   select(url = ETURL,
          age_approx = dob_approx,
          spouse = STAT_spouse, 
@@ -57,8 +57,13 @@ d <- titanic %>%
   select(-url) 
 
 # set approximate age to missing
-d[which(d$age_approx != 0), "age"] <- NA 
+d[d$age_approx != 0 & !is.na(d$age_approx), "age"] <- NA 
 d$age_approx <- NULL
+# use mode 0 to fill in 4 missing companion variables 
+d[is.na(d$spouse), "spouse"] <- 0
+d[is.na(d$sibling), "sibling"] <- 0
+d[is.na(d$parent), "parent"] <- 0
+d[is.na(d$children), "children"] <- 0
 
 readr::write_csv(d, "data/titanic.csv")
 

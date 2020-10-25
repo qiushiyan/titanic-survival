@@ -3,16 +3,14 @@ title: |
   Modeling Titanic Survival
 author:
   - name: Qiushi Yan
-    affil: a
+    affil: ""
     email: "qiushi.yann@gmail.com, website: https://qiushi.rbind.io"
 affiliation:
   - num: a
     address: |
       Beijing, China
 abstract: |
-   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained. This analysis is also made fully reproducible with R code and text provided. 
-keywords: |
-  logistic regression; multiple imputation; model validation
+   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained. This analysis is fully reproducible with all source R code and text. 
 bibliography: references.bib
 link-citations: true
 geometry: "margin=1in"
@@ -37,8 +35,6 @@ http://www.crema-research.ch/papers/2009-03.pdf
 
 Who Survived Titanic? A Logistic Regression Analysis: https://sci-hub.do/https://journals.sagepub.com/doi/pdf/10.1177/084387140401600205
 
-- Do human beings behave more in line with the selfish *homo oeconomicus*, where everybody
-is out for himself or herself and possibly even puts other people’s lives in danger
 
 https://www.insider.com/titanic-secrets-facts-2018-4#at-the-memorial-of-frederick-fleet-one-of-the-lookouts-a-prankster-left-a-pair-of-binoculars-with-a-note-reading-sorry-for-bringing-these-100-years-too-late-8
 
@@ -60,13 +56,15 @@ knitr::opts_chunk$set(
   fig.align = "center",
   echo = FALSE
 )
-# latex print optiosn
-options(prType='latex')
+
 # load libraries 
 library(dplyr) # data wrangling
 library(ggplot2) # visualization
 library(rms) # modeling
 library(mice) # imputation for missing data
+library(patchwork) # plot composition
+# latex print option
+options(prType='latex')
 # load raw data
 t <- readr::read_csv("data/titanic.csv")
 # modify Hmisc::latex
@@ -110,9 +108,9 @@ ggplot2::theme_set(theme_clean())
 
 # Introduction 
 
-The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others. After the British passenger liner struck an iceberg in her maiden voyage on 15 April 1912 and was eventually wrecked, more than 1500 people perished. Decades of effort has been devoted to the study of the historic event, in which one major interest is to predict possibility of survival given a number of characteristics, since there was clear account that some people (woman, children) were allowed to get on the lifeboat first.  
+The sinking of RMS Titanic brought to various machine learning competitions a quintessential dataset among others. After the "unsinkable" British passenger liner struck an iceberg in her maiden voyage on 15 April 1912 and was eventually wrecked, more than 1500 people perished. Decades of effort has been devoted to the study of the historic event, in which one major interest for statisticians is to predict possibility of survival given a number of characteristics, since there was clear account that some people (woman, children) were allowed to get on the lifeboat first.  
 
-There are several variants of Titanic data existed on the web, with primary source based on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) [-@hind] founded by Philip Hind. This project is based on the most recent version with following columns available (table \@ref(data-dictionary)). After appropriate formatting and cleaning, the data at hand recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, family relations on board, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. Preprocessing steps are detailed in the [data](#data) section in the appendix. 
+There are several variants of Titanic data existed on the web, with primary source based on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) [-@hind] founded by Philip Hind. This project is based on the most recent version with following columns available (table \@ref(data-dictionary)). 
 
 
 ```{r data-dictionary,results="asis"}
@@ -122,10 +120,9 @@ tribble(
   "age", "Age", "In years, some infants had fractional values",
   "gender", "Gender", "",
   "class\\_dept", "Class or Department", "Passengers, Crew or Staff",
-  "joined", "Port of Embarkation", "Cherbourg, Queenstown or Southampton",
   "nationality", "Motherland", "from wiki passenger list",
   "title", "Title", "Extracted from name",
-  "spouse", "Number of spouse on board", "",
+  "spouse", "\\# of spouse on board", "",
   "sibling", "Number of siblings on board", "",
   "parent", "Number of parents on board", "",
   "children", "Number of children on board", "",
@@ -133,39 +130,41 @@ tribble(
 ) %>% 
   mylatex(file = "", 
           table.env = TRUE, label = "data-dictionary", size = "small",
-          caption = "Cleaned data with 2208 rows and 11 columns")
+          caption = "Cleaned data with 2208 rows and 11 columns", rowname = NULL, where = "h")
 ```
 
 
+After appropriate formatting and cleaning, the data at hand recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. Steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
+
+It is essential for every fruitful task of data analysis to first identify key questions of investigation that facilitates interpretation, however vague they are at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes, we could establish the following questions for which to quest
+
+- To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
 
 
+- Did socio-economic advantages mean better chance of survival? If this is the case, passengers with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people. Cabin class's impact on survival status needs special notice here. 
+
+- For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
+
+- Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
+
+- Quantify interactions among various characteristics. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
 
+This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
 
-- Did socioeconomic advantage mean better chance of survival? If this is the case, people with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people.  
+- [Exploration](#exploration). Use descriptive statistics to detect data distribution characteristics and relative effects, followed by redundancy analysis to study dependencies among predictors. Finish with nonparametric loess regression exploring nonlinear trends. 
 
-- people in their prime
+- [Modeling](#modeling). multiple imputation
 
-- Quantify predictive ability of each predictors, i.e. which predictor is most dominant in determining whether a passenger will survive 
+- [Discussion](#discussion). Provide model-based explanation to answer former questions, combined with other research.
 
-- Find Interactions between predictors. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
-
-- Whether the *Women and children first* policy is respected. After the collision, The captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.]
-
-- For those who traveled alone with no family relations on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
-
-- Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was perated by British crew, and managed by British captain, masters and officers. Conversely, British elite were once incarnation for chivalry. 
-
-
-This case study has been greatly inspired by Dr. Frank Harrell's similar one in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my own idea and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
-
-- [Exploration](#exploration), data preprocessing based on descriptive statistics and visualization, finish with a redundancy analysis  
+- [Conclusion](#conclusion).
 
 
 
 # Exploration {#exploratory}
 
-## Data processing and descriptive statistics
+## Descriptive statistics and data processing
 
 A nice summary of of the data is given by the `Hmisc::describle` function. For numerical variables, a inline histogram is produced alongside summary measures such as the number of missing values and the mean. For discrete variables, we focus on the number of categories and their relative frequency.  
 
@@ -187,10 +186,11 @@ t %>%
   ggplot() + 
   geom_bar(aes(n), color = "black", fill = "midnightblue", alpha = 0.7) + 
   facet_wrap(~ relation, nrow = 2) + 
-  labs(x = NULL, y = NULL)
+  labs(x = NULL, y = NULL) + 
+  scale_y_log10()
 ```
 
-(ref:skew-rel) Few subjects have more than one companion in any of the 4 relations.  
+(ref:skew-rel) Few subjects have more than one companion in any of the 4 relations. Y axis on log scale.
 
 Given this results, the final step in data munging is to dichotomize `spouse`, `parent`, `children` and `sibling` to denote if there is such relation. Thus we no longer have to deal with continuous predictors with poor distribution. 
 
@@ -203,11 +203,11 @@ t$children <- if_else(t$children == 0, "0", "1")
 
 Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, this is a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either result from a flat relationship with the response, or from nonlinearity and interaction among variables this plot fails to detect. 
 
-```{r univariate, fig.height = 9, fig.width  = 3.5, fig.cap = "Summary of relationship between survival and each predictor"}
-s <- summary(survived ~ age + gender + class_dept + joined + nationality + title +
+```{r univariate, fig.height = 7, fig.width  = 4, fig.cap = "Summary of relationship between survival and each predictor"}
+s <- summary(survived ~ age + gender + class_dept +  nationality + title + 
                spouse + sibling + parent + children, 
     data = t)
-plot(s, main = "" , subtitles = TRUE, cex = 0.65)
+plot(s,main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 2.5)
 ```
 
 
@@ -215,19 +215,117 @@ plot(s, main = "" , subtitles = TRUE, cex = 0.65)
 Finally, redundant analysis 
 
 ```{r, comment = "", eval = FALSE}
-redun(~ age  + class_dept +  nationality + spouse + joined + 
-        sibling + parent + children, 
+redun(~ age  + class_dept +  nationality + title + sibling
       , data = t)
 ```
 
-## Data missing patterns 
+
+Companion 
 
 
 
-```{r, echo = TRUE}
-naplot(naclus(t), "na per var")
-plot(naclus(t))
+
+## Loess regression for nonlinear pattern 
+
+The loess is a common nonparametric regression method to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the proportion of positive cases near the neighborhood of $x_0$ ^[with varying weights according to their distance to $x_0$]. If the trend of a loess curve shows nonmonotoncity, it is reasonable to include that nonlinearity relationship in the model, e.g., modeling the predictor with polynomial transformation or with splines. 
+
+Another important interaction, according to various literature, is related to cabin class (for passenger) and department (for crew and staff). 
+
+\@ref(fig:loess-curve)
+
+```{r loess-curve, fig.height = 7.5, fig.cap = "(ref:loess-curve)"}
+p1 <- ggplot(t, aes(age, survived)) +
+  histSpikeg(survived ~ age, lowess = TRUE, data = t) + 
+  labs(y = NULL, x = NULL)
+p2 <- ggplot(t, aes(age, survived, color = gender)) + 
+  histSpikeg(survived ~ age + gender, lowess = TRUE, data = t) + 
+  labs(y = NULL, x = NULL)
+p3 <- ggplot(t, aes(age, survived, color = class_dept)) + 
+  histSpikeg(survived ~ age +  class_dept + gender, lowess = TRUE, data = t) + 
+  labs(y = NULL) + 
+  facet_wrap(~ gender)
+(p1 + p2) / p3 
 ```
+
+(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel shows the nonlinear relationship between age and survival status without controlling confounding variables. Other plots give estimates under stratification by sex and class/department.  
+
+
+
+
+
+
+
+
+
+
+
+
+# Modeling
+
+the choice of model. In this setting, it is obvious that we would prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the true value of our model consist not in the decision on who will survive, but in what characteristics would increase or decrease the possibility of survival. The notion has ruled out most of the black box machine learning models for classification, say, random forest, support vector machines and neural network. Not only are they not intrinsically probability oriented, it is hard to interpret main effects and interactions as everything seems to be interacted with one another. 
+
+
+
+## Saturated model {#saturated}
+
+First and foremost, 
+
+The limiting sample size for binary outcome would be the number of minority class, in our case `r sum(t$survived == 1)`. Using the 15:1 rule, that will give us some confidence spending roughly `r round(sum(t$survived == 1) / 15)` parameters or degrees of freedom. 
+
+
+This plot is used to identify possibly flat relationship between predictor and response. ^[A misuse of this plot would be checking nonlinearity. Even with spline transformation and large corrected $\chi^2$ there is no guarantee for nonlinearity.] 
+
+
+In this sense, the saturated model could provide rough guidance 
+
+```{r, results = "asis"}
+tribble(
+  ~ age, ~ sibling, ~ parent, ~ children,
+  4, 1, 1, 1
+) %>% mylatex(size = "small", file = "", table.env = TRUE, caption = "d.f. budget in the satured model", rowname = NULL, where = "h")
+```
+
+
+
+
+
+```{r}
+dd <- datadist(t)
+options(datadist = "dd")
+f1 <- lrm(survived ~ rcs(age, 5) * gender + class_dept +   
+            nationality + spouse + sibling + parent + children,
+          data = t, x = TRUE, y = TRUE)
+```
+
+
+hypothesis testing 
+
+```{r, results="asis"}
+mylatex(anova(f1), file="", size = "small")
+```
+
+anova plot
+
+```{r}
+plot(anova(f1))
+```
+
+
+
+
+
+
+
+## Multiple imputation {#imputation}
+
+The pooled estimates are obtained by averaging over $m$ fitted model based on one piece of multiple imputation. The variance-covariance matrix $T$ is calculated using Rudin's rule 
+
+$$
+T = \frac{1}{m}\sum_{i=1}^{m}U_i + (1 + \frac{1}{m})B
+$$
+
+where $U_i$ is the estimated complete-data variance-covariance matrix in each imputation, and $B$ the estimated variance-covariance matrix between the $m$ complete-data estimates. Here we see the one major advantage of multiple imputation over single imputation is that not only does its variance estimates accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations. 
+
 
 There are some simple workarounds 
 
@@ -239,70 +337,40 @@ There are some simple workarounds
 - multiple imputation 
 
 
-For demonstration purposes I will fit two decision trees to predict
+## 
 
 
 
-
-
-## Loess regression for nonlinear pattern 
-
-The loess is a common nonparametric regression method to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the proportion of positive cases near the neighborhood of $x_0$ ^[with varying weights according to their distance to $x_0$]. If the trend of a loess curve shows nonmonotoncity, it is reasonbale to include that nonlienarity relationship in the model, e.g., modeling the predicotr with polynomial transformation or with splines. 
-
-figure \@ref(fig:univariate)
-
-
- 
-
-
-
-
-# Modeling
-
-the choice of model. In this setting, it is obvious that we would prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the true value of our model consist not in the decision on who will survive, but in what characteristics would increase or decrease the possibility of survival. The notion has ruled out most of the black box machine learning models for classification, say, random forest, support vector machines and neural network. Not only are they not intrinsically probability oriented, it is hard to interpret main effects and interactions as everything seems to be interacted with one another. 
-
-
-## Saturated model 
-
-First and foremost, 
-
-The limiting sample size for binary outcome would be the number of minority class, in our case `r sum(t$survived == 1)`. Using the 15:1 rule, that will give us some confidence spending roughly `r round(sum(t$survived == 1) / 15)` parameters or degrees of freedom. 
-
-
-This plot is useful in identifying weather the relationship between survival status and any predictor is flat. ^[A misuse of this plot would be checking nonlinearity. Even with spline transformation and large corrected $\chi^2$ there is no guarantee for nonlinearity.] 
-
-
-likely shrinkage
-
-
-
-```{r}
-f1 <- lrm(survived ~ rcs(age, 5) * gender + rcs(age, 5) * class_dept + title, maxit = 2000, data = t)
-```
-
-
-```{r, results="asis"}
-mylatex(anova(f1), file="", size = "small")
-```
-
-
-
-
-
-
-
-## Multiple imputation and the final model
-
-## Diagonostics and interpretation
-
-
-## Validation
+## Validation and calibration {#validation}
 
 There will not be another Titanic, and any model on Titanic will not be used for prediction. Therefore, the goal of model validation is primarily to provide quantify the degree of overfitting with various bias-corrected measures. 
 
 
 
 In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
+
+
+As a integral component of model validation, calibration aims to gauge the concordance between predicted values and observed data. 
+
+## Diagonostics and interpretation {#interpretation}
+
+
+
+influence
+
+`which.influence`
+
+
+```{r, fig.height = 6, fig.cap = "nomogram"}
+plot(nomogram(f1), cex.var = 0.8, cex.axis = 0.6)
+```
+
+
+
+
+
+
+
 
 
 # Discussion 
@@ -318,6 +386,7 @@ Wyn Craig Wade: there was a class culture on Titanic akin to the notion of a "cu
 
 A more detailed explanation of some of these measures is presented in the [appendix](#measures). 
 
+*Women and children first only for higher class passengers*. If you are a third class female
 
 
 
@@ -325,6 +394,11 @@ A more detailed explanation of some of these measures is presented in the [appen
 
 
 
+
+
+
+
+\pagebreak
 
 
 # (APPENDIX) Appendix {-} 
@@ -336,7 +410,7 @@ The source data is accessed on [Encyclopedia Titanica](https://www.encyclopedia-
 
 - **larger sample size**: Our data includes crew and staff members alongside passengers, while titanic3 only incorporate passenger information. We do not use a separate test set approach for validation either. As a result, the sample size is about 2.5 times larger. 
 
-- **more columns**: Additional variables such as role on the ship, nationality and occupation are added. A major difference is made by separating the travel companion data into four distinctive columns: number of parents, children, sibling and spouses that each passenger traveled with. These were combined into two columns before. 
+- **more columns**: Additional variables such as role on the ship, nationality and occupation are added. A major difference is made by separating the travel companion data into four distinct columns: number of parents, children, sibling and spouses that each passenger traveled with. These were combined into two columns before. 
 
 - **more accurate**: `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. The data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects the state of the data as of 21 October 2020. 
 
@@ -345,19 +419,26 @@ The data cleaning process involves using appropriate data types, creating new fe
 
 `title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".]
 
+
 Passengers are classified according to their cabin class. Others on the vessel fall into one of crew and staff members. Crew includes victualling crew^[crew in charge of food, housekeeping, laundry, room service, etc.], engineering crew, deck crew and officers, substitute crew and guarantee group. Staff members include restaurant staff and orchestra. 
 
 Rare nationality (lower than 50 people) is collapsed. 
 
-There is an indicator column telling when a person's age is only approximate and cannot be determined from current facts. These inaccurate age have been assigned NA. 
+Age information is presented as non-missing on the surface yet there is an indicator column representing when a person's age is only approximate and cannot be fully determined from current facts. These inaccurate age have been assigned NA. There were also ten subjects whose four companion variables were all explicitly missing. For simplicity, the mode `0` is filled in. Therefore, the problem of missing data is reduced to univariate missing of `age`.   
 
-Variables we do not utilize in this project includes name, date of birth and death, lifeboat number^[There were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1. In this sense `boat` is more the result of survival, rather than a cause.], fare, and cabin number.^[While some study used this attribute to find cabin locations, its large amount of missingness could be a source of major complexity.]
+Variables we do not utilize in this project includes name, date of birth and death, port of embarkation, lifeboat number^[There were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1. In this sense `boat` is more the result of survival, rather than a cause.], fare, and cabin number.^[While some study used this attribute to find cabin locations, its large amount of missingness could be a major source of complexity.]
 
 
 
 
 
 # Measures used in valiation {#measures}
+
+Somer's $D_{xy}$ index is a calibration measure, which is the rank correlation between predicted and actual response. It has a close relationship with the C index 
+
+$$
+D_{xy} = 2(c - 0.5)
+$$
 
 # Original Computing Environment
 
