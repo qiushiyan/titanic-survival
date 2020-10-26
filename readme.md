@@ -7,3 +7,9 @@ This case study showcases the development of a binary logistic model to predict 
 - Philip hind and [Encyclopedia Titanica](encyclopedia-titanica.org) for being tremendously helpful in providing the most accurate, updated titanic data 
 
 - Dr. Frank Harrell for the inspiring textbook *Regression Modeling Strategies* and similar case study
+
+# Further Study
+
+More graphical methods (e.g., mosaic plot), see Analysis of Categorical Data by Michael Friendly
+
+incorporation cabin class and `vcd::Lifeboats` to study the impact of passenger's location and leaving order of lifebotas 
