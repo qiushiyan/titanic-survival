@@ -115,6 +115,7 @@ There are numerous variants of Titanic data existed on the web, with primary sou
 crew member. This project is based on the most recent version as of October 2020, with following columns available (table \@ref(data-dictionary)). Source data and steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
 
 
+
 ```{r data-dictionary,results="asis"}
 tribble(
   ~ Variable, ~ Definition, ~ Note,
@@ -238,12 +239,11 @@ The plot shows appreciably strong effects of gender and class/department on surv
 
 We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model.  The checking algorithm involves 
 
-```{r, comment = "", eval = FALSE}
-redun(~ age  + class_dept +  nationality + title + sibling
+```{r, comment = ""}
+redun(~ age  + class_dept +  nationality + title 
       , data = t)
 ```
 
-Companion 
 
 
 
@@ -313,13 +313,17 @@ This plot is used to identify possibly flat relationship between predictor and r
 
 In this sense, the saturated model could provide rough guidance 
 
+represented age as a smooth 5-knot spline function, which costs 4 degrees of freedom. Categorical variables are expanded as dummy variables. restricted to two-way interactions 
+
 ```{r, results = "asis"}
 tribble(
-  ~ age, ~ sibling, ~ parent, ~ children,
-  4, 1, 1, 1
-) %>% mylatex(size = "small", file = "", table.env = TRUE, caption = "d.f. budget in the satured model", rowname = NULL, where = "h")
+  ~ "age", ~ "gender", ~ "class\\_dept",
+  4, 1, 1,
+  4, 4, 4
+) %>% mylatex(size = "small", file = "", table.env = TRUE, caption = "(ref:df-budget)", rowname = NULL, where = "h")
 ```
 
+(ref:df-budget) d.f. budget in the saturated model. Row 1: main effects. Row 2: interactions. 
 
 
 
