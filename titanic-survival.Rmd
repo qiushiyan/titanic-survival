@@ -76,32 +76,7 @@ mylatex <- function (...) {
     cat(o, sep='\n')
 }
 # theme for ggplot2
-theme_clean <- function(base_size = 11,
-                      strip_text_size = 12,
-                      strip_text_margin = 5,
-                      subtitle_size = 13,
-                      subtitle_margin = 10,
-                      plot_title_size = 16,
-                      plot_title_margin = 10,
-                      ...) {
-  ret <- ggplot2::theme_minimal(base_size = base_size, ...)
-  ret$strip.text <- ggplot2::element_text(
-    hjust = 0, size = strip_text_size,
-    margin = ggplot2::margin(b = strip_text_margin)
-  )
-  ret$plot.subtitle <- ggplot2::element_text(
-    hjust = 0, size = subtitle_size,
-    margin = ggplot2::margin(b = subtitle_margin)
-  )
-  ret$plot.title <- ggplot2::element_text(
-    hjust = 0, size = plot_title_size,
-    margin = ggplot2::margin(b = plot_title_margin)
-  )
-  ret$plot.title.position <- "plot"
-  ret$panel.grid <- ggplot2::element_blank()
-  ret
-}
-ggplot2::theme_set(theme_clean())
+ggplot2::theme_set(ymisc::theme_clean())
 ```
 
 
@@ -122,7 +97,7 @@ tribble(
   "survived", "Survival Status", "0 = Lost, 1 = Saved",
   "age", "Age", "In years, some infants had fractional values",
   "gender", "Gender", "",
-  "class\\_dept", "Class or Department", "Passengers, Crew or Staff",
+  "class", "Cabin class", "1st, 2nd, 3rd or Crew",
   "nationality", "Motherland", "from wiki passenger list",
   "title", "Title", "Extracted from name",
   "spouse", "\\# of spouse on board", "",
@@ -153,11 +128,11 @@ It is essential for every fruitful task of data analysis to first identify key q
 - Quantify interactions among various characteristics. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
 
-This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] and RStudio with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
+This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
 
 - [Exploration](#exploration). Use descriptive statistics to examine data distribution characteristics, data missing patterns and relative effects, followed by redundancy analysis to study dependencies among predictors. Finish with nonparametric loess regression exploring nonlinear trends. 
 
-- [Model development](#dev). The key section in specifying, developing, validating and describing a binary logistic model, splitted into 
+- [Model development](#dev). The key section in specifying, developing, validating and describing a binary logistic model, split into 
 
   - [Specification](#spec) Prespecification of predictor complexity with a saturated main effect model. 
   
@@ -166,6 +141,7 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
   - [Model fitting, validation and calibration](#fit). Obtain pooled parameter estimates based on prespecified complexity and imputation results. Use bootstrap validation and calibration curve (the ".632" method) to study model performance and optimism. 
 
   - [Interpratation](#interpretation). Summarize the model with estimation and hypothesis testing, combined with graphical methods like partial effect plots and nomogram. 
+  
   
 - [Discussion](#discussion). Model-based explanation to address some of our former questions. 
 
@@ -227,20 +203,20 @@ t$sibling <- if_else(t$sibling == 0, "0", "1")
 t$children <- if_else(t$children == 0, "0", "1")
 ```
 
-Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). This sort of graphical illustration is typical in many flawed infographic visual designs that fail to adjust for real-world complexity. For each column, we can build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that univariate method cannot detect. 
+Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, we can build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that univariate method cannot detect. 
 
-```{r univariate, fig.height = 7, fig.width  = 3.5, fig.cap = "Summary of relationship between survival and each predictor"}
+```{r univariate, fig.height = 7.5, fig.width  = 3.5, fig.cap = "Summary of relationship between survival and each predictor"}
 s <- summary(survived ~ ., 
     data = t)
-plot(s, main = "" , subtitles = TRUE, cex = 0.6, pch = 22, width = 3)
+plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 ```
 
-The plot shows appreciably strong effects of gender and class/department on survival status. The effect of age seems trivial except for the missing subjects, but again, this figure exposes only linear relationship, and only after categorization. As we will see in the next section, age effect are much nonlinear and concentrated in the young. The downside of this kind of univariate relationship is also exemplified in `title`, one cannot judge whether the. For the same reason effects of other variables cannot be determined. 
+The plot shows appreciably strong effects of gender and cabin class on survival status. The effect of age seems trivial except for the missing subjects, but again, this figure exposes only linear relationship, and only after categorization. As we will see in the next section, age effect are much nonlinear and concentrated in the young subjects. The downside of this kind of univariate relationship is also exemplified in `title`, where "Miss". For the same reason effects of other variables cannot be determined. 
 
 We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model.  The checking algorithm involves 
 
 ```{r, comment = ""}
-redun(~ age  + class_dept +  nationality + title 
+redun(~ age  + class +  nationality + title 
       , data = t)
 ```
 
@@ -263,14 +239,14 @@ p1 <- ggplot(t, aes(age, survived)) +
 p2 <- ggplot(t, aes(age, survived, color = gender)) + 
   histSpikeg(survived ~ age + gender, lowess = TRUE, data = t) + 
   labs(y = NULL, x = NULL)
-p3 <- ggplot(t, aes(age, survived, color = class_dept)) + 
-  histSpikeg(survived ~ age +  class_dept + gender, lowess = TRUE, data = t) + 
+p3 <- ggplot(t, aes(age, survived, color = class)) + 
+  histSpikeg(survived ~ age +  class + gender, lowess = TRUE, data = t) + 
   labs(y = NULL) + 
   facet_wrap(~ gender)
 (p1 + p2) / p3 
 ```
 
-(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel shows the nonlinear relationship between age and survival status without controlling confounding variables. Other plots give estimates under stratification by sex and class/department.  
+(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel shows the nonlinear relationship between age and survival status without controlling confounding variables. Other plots give estimates under stratification by sex and class.  
 
 
 
@@ -280,68 +256,52 @@ p3 <- ggplot(t, aes(age, survived, color = class_dept)) +
 
 # Model devlopment {#dev}
 
-Before any specific modeling workflow, often the analyst has the choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism and assumes additivity, whereas machine learning models is algorithmatic, optimized through parameter tuning to achieve a higher performance score. We choose the "simple" binary logistic model for the following reasons. 
+A typical modeling workflow begins with an choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism and assumes additivity, whereas machine learning models is algorithmatic, optimized through parameter tuning to achieve a higher performance score. We choose the "simple" binary logistic model for the following reasons. 
 
 We prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the value of our model consist not in a dichotomous prediction, but in what characteristics would increase or decrease the possibility of survival. The notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
 
 Interpretability and inference matters. Although some top data science competitioners has reported moderately high signal to noise ratio (e.x., 90% prediction accuracy) that might tip the balance towards  machine learning models, interpretability is harmed. Specifically, statistical models favour additivity have explicit specification. As a result, there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multilayer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
 
-Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. In order to avoid overfitting, the analyst has to have a sample size that is 10 times larger if he chooses a decision tree over regression models. The rationale is that statistical modeling is a safter approach as Dr. Harrell commented
+Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. To guard against overfitting, the analyst has to have a sample size that is 10 times larger at least if he chooses a decision tree instead of regression models. The rationale is that a statistical model is a safer approach as Dr. Harrell commented
 
 > If n is too small to do something simple, it is too small to do something complex
 
 
-
-
-
-
 ## Specification {#spec}
 
+We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. 
 
+This is done by developing a saturated logistic model, with maximum flexible nonlinear age effect represented as natural splines with 5 knots, and with all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. We will not create three-way or higher interactions to avoid singularity. Since this is an initial model, observations with missing age are not used. The model equation is 
 
-the choice of model. , it is hard to interpret main effects and interactions as everything seems to be interacted with one another. 
-
-
-
-First and foremost, 
-
-The limiting sample size for binary outcome is the number of minority class, in our case `r sum(t$survived == 1)`. Using the 15:1 rule, that will give us some confidence spending roughly `r round(sum(t$survived == 1) / 15)` parameters or degrees of freedom. 
-
-
-This plot is used to identify possibly flat relationship between predictor and response. While misuse of this plot would be checking nonlinearity. Even with spline transformation and large corrected $\chi^2$ there is no guarantee for nonlinearity. 
-
-
-In this sense, the saturated model could provide rough guidance 
-
-represented age as a smooth 5-knot spline function, which costs 4 degrees of freedom. Categorical variables are expanded as dummy variables. restricted to two-way interactions 
-
-```{r, results = "asis"}
-tribble(
-  ~ "age", ~ "gender", ~ "class\\_dept",
-  4, 1, 1,
-  4, 4, 4
-) %>% mylatex(size = "small", file = "", table.env = TRUE, caption = "(ref:df-budget)", rowname = NULL, where = "h")
+```r
+survived ~ (rcs(age, 5) + gender + class)^2 + (rcs(age, 5) * parent) + 
+            joined + spouse + sibling + 
+            children + nationality + title
 ```
-
-(ref:df-budget) d.f. budget in the saturated model. Row 1: main effects. Row 2: interactions. 
-
-
-
 
 ```{r}
 dd <- datadist(t)
 options(datadist = "dd")
-f1 <- lrm(survived ~ rcs(age, 5) * gender + class_dept +   
-            nationality + spouse + sibling + parent + children,
+f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
+            (rcs(age, 5) * parent) + joined + 
+            spouse + sibling + children + 
+            nationality + title,
           data = t, x = TRUE, y = TRUE)
 ```
 
 
-hypothesis testing 
 
 ```{r, results="asis"}
-mylatex(anova(f1), file="", size = "small")
+mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "saturated-table")
 ```
+
+Table \@ref(saturated-table) 
+
+
+
+
+
+
 
 anova plot
 
@@ -350,7 +310,38 @@ plot(anova(f1))
 ```
 
 
-to avoid creating "phantom degrees of freedom" that will distort coefficient estimates, confidence intervals, p-value and calibration. 
+Model simplification based on hypothesis testing in table \@ref(saturated-table) must be done with extreme care. If we delete a predictor based on a p-value of 0.08, it leads to severe problems phantom degrees of freedom that distort coefficient estimates, confidence intervals, p-value and calibration of the final model. A more robust way is to use backward selection on bootstrap resamples. 
+
+
+
+
+```{r, include = FALSE, cache = TRUE}
+v1 <- validate(f1, B = 200, bw = TRUE)
+```
+
+```{r, eval = FALSE}
+attr(v1, "kept") %>% 
+  as_tibble() %>% 
+  summarise(across(everything(), sum)) %>% 
+  select(where(~ . <= 20)) %>% 
+  mylatex(file = "", 
+          table.env = TRUE, label = "data-dictionary", size = "small",
+          caption = "Terms retained less than 20 times in the model in 200 bootstrap resamples", rowname = NULL, where = "h")
+```
+
+
+
+
+```{r, results = "asis"}
+tribble(
+  ~ "age", ~ "gender", ~ "class",
+  4, 1, 1,
+  4, 4, 4
+) %>% mylatex(size = "small", file = "", table.env = TRUE, caption = "(ref:df-budget)", rowname = NULL, where = "h")
+```
+
+(ref:df-budget) d.f. budget in the saturated model. Row 1: main effects. Row 2: interactions. 
+
 
 
 
@@ -376,12 +367,14 @@ There are some simple workarounds
 - multiple imputation 
 
 
+
 ```{r, cache = TRUE}
-# predictiv mean matching to generate 30 complete datasets
-imp <- mice(t, method = "pmm", m = 30, printFlag = FALSE)
+# use predictive mean matching to generate 30 complete dataset
+imp <- mice(t, method = "pmm", m = 30, 
+            printFlag = FALSE)
 ```
 
-```{r}
+```{r, fig.width = 4.5, fig.height = 3, fig.cap = "Density plot of observed and imputed data. In general, the imputed dataset mimic the age distribution seen in the observed data."}
 densityplot(imp)
 ```
 
@@ -391,17 +384,29 @@ densityplot(imp)
 
 https://www.encyclopedia-titanica.org/community/threads/passengers-who-spoke-other-languages.20103/
 
-Since the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd Class were traveling in family or neighbourhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
+Since the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
+
+
+
 
 
 
 ```{r, include = FALSE}
-f2 <- fit.mult.impute(survived ~ rcs(age, 4) * gender + class_dept +   nationality + spouse + sibling + parent + children, lrm, imp, data = t)
+f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
+            parent * rcs(age, 5) + 
+            spouse + children + 
+            nationality,
+            fitter = lrm, 
+            imp, 
+            data = t)
 ```
 
 
+```{r, results = "asis"}
+mylatex(anova(f2), file = "", size = "small")
+```
 
-
+$\chi^2 - \text{df}$ is the "adjusted" 
 
 
 ## Model fitting, validation and calibration {#fit}
@@ -420,6 +425,35 @@ the global likelihood ratio statistic for all predictors.
 In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
 
 
+
+
+```{r, include = FALSE}
+f2 <- update(f2, x = TRUE, y = TRUE)
+v2 <- validate(f2, B = 200)
+```
+
+
+```{r, results = "asis"}
+mylatex(v2, file = "")
+```
+
+
+
+
+The area under the ROC curve as well as the concordance probability is `r (v2["Dxy", "index.orig"] / 2) + 0.5`
+
+$$
+D_{xy} = 2(c - 0.5)
+$$
+
+
+```{r}
+cal <- calibrate(f2, B = 200)
+plot(cal)
+```
+
+
+
 As a integral component of model validation, calibration aims to gauge the concordance between predicted values and observed data. 
 
 ## Interpretation 
@@ -431,7 +465,7 @@ influence
 `which.influence`
 
 
-```{r, fig.height = 6, fig.cap = "nomogram"}
+```{r, fig.height = 10, fig.cap = "nomogram"}
 plot(nomogram(f1), cex.var = 0.8, cex.axis = 0.6)
 ```
 
@@ -508,9 +542,7 @@ The formula for our binary logistic model
 
 Somer's $D_{xy}$ index is a calibration measure, which is the rank correlation between predicted and actual response. It has a close relationship with the C index 
 
-$$
-D_{xy} = 2(c - 0.5)
-$$
+
 
 # Computing environment
 

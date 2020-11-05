@@ -26,19 +26,18 @@ titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xl
           TRUE ~ nationality
         ),
         nationality = fct_lump_min(nationality, min = 50),
-        class_dept = case_when(
-          grepl("Staff|Musician|Guarantee Group", class_dept)  ~ "staff",
+        class = case_when(
+          grepl("Staff|Musician|Guarantee Group|Crew", class_dept)  ~ "crew",
           grepl("3rd Class Passenger", class_dept) ~ "3rd",
           grepl("2nd Class Passenger", class_dept) ~ "2nd",
-          grepl("1st Class Passenger", class_dept) ~ "1st",
-          grepl("Crew", class_dept) ~ "crew",
+          grepl("1st Class Passenger", class_dept) ~ "1st"
         ),
         title = gsub('(.*, )|(\\.?\\s.*)', '', name) %>% 
           fct_collapse("Mr" = "Mr",
                        "Miss" = "Miss",
                        "Mrs" = "Mrs",
                        other_level = "other")) %>% 
-  select(-name, -born, -died, -ticket, -cabin, -fare, -occupation, -body, -boat) %>% 
+  select(-name, -born, -died, -ticket, -class_dept, -cabin, -fare, -occupation, -body, -boat) %>% 
   relocate(survived) 
 
 
