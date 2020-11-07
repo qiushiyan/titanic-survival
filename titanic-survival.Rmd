@@ -22,13 +22,6 @@ output:
     includes:
       in_header: header.tex
     dev: "cairo_pdf"
-    extra_dependencies:
-      sourcecodepro:
-       - scale=0.85
-      sourceserifpro:
-       - rmdefault
-      sourcesanspro:
-       - sfdefault
 ---
 
 http://www.crema-research.ch/papers/2009-03.pdf
@@ -91,7 +84,7 @@ crew member. This project is based on the most recent version as of October 2020
 
 
 
-```{r data-dictionary,results="asis"}
+```{r, results="asis"}
 tribble(
   ~ Variable, ~ Definition, ~ Note,
   "survived", "Survival Status", "0 = Lost, 1 = Saved",
@@ -165,7 +158,7 @@ t %>%
 
 There are several noteworthy patterns.^[Though this may not be relevant to the model, it is still an surprising discovery that it wasn't until the late 19th century that the idea of women traveling alone gained ground. As a result, there were nearly twice as many males passengers as females on Titanic. In fact, only 40% female passengers have no companion on the ship.] 
 
-Of special importance is the `age` variable, which has roughly 30% missingness. On the other hand, it has a nice distribution with 80% known observations falling between 14 and 50. For further examination of patterns of missing data, we could fit a decision tree (figure \@ref(fig:na-tree)) to predict which type of subject tend to have missing ages. Generally, for some third class male passenger or crew, age is mostly to miss. 
+Of special importance is the `age` variable, which has roughly 30% missingness. On the other hand, it has a nearly symmetric distribution with 80% known observations falling between 14 and 50. For further examination of patterns of missing data, we could fit a decision tree to predict which type of subject tend to have missing ages. Generally, for some third class male passenger or crew, age is mostly to miss. 
 
 ```{r na-tree, echo = TRUE, fig.cap = "(ref:na-tree)", fig.height = 3.5}
 na_tree <- rpart(factor(is.na(age)) ~ ., 
@@ -175,8 +168,10 @@ na_tree <- rpart(factor(is.na(age)) ~ .,
 rpart.plot::rpart.plot(na_tree, type = 3, cex = 0.6)
 ```
 
-(ref:na-tree) The decision tree for predicting `is.na(age)`, which finds strong patterns of missing related to class/department and  gender (the Cherbourg node has very limited samples).
+(ref:na-tree) The decision tree for predicting `is.na(age)`, which finds strong patterns of missing related to class/department and  gender (the Syrian node has very limited samples). Each node shows (top to bottom) the predicted class, the predicted probability of age being missing, the percentage of observations in the node.   
 
+
+We see in figure \@ref(fig:na-tree) that survival status, gender and class are essential in determining age missingness. For a 3rd class male passenger who did not survive, age is missing with a probability of 60%. Interestingly, English male crew members are much more likely to have missing age than subjects of other nationality
 
 
 Back to other variables in descriptive statistics. Distributions of subject's companion on Titanic are all too narrow, as shown in figure \@ref(fig:skew-rel). This motivates categorization since we will not lose too much information. Lastly, nearly half of the subjects are English. And if we focus on crew, the number rise to 85%. 
@@ -254,7 +249,7 @@ p3 <- ggplot(t, aes(age, survived, color = class)) +
 
 
 
-# Model devlopment {#dev}
+# Model development {#dev}
 
 A typical modeling workflow begins with an choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism and assumes additivity, whereas machine learning models is algorithmatic, optimized through parameter tuning to achieve a higher performance score. We choose the "simple" binary logistic model for the following reasons. 
 
@@ -269,7 +264,7 @@ Machine learning models are data hungry and sometimes create the need for big da
 
 ## Specification {#spec}
 
-We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. 
+We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. 
 
 This is done by developing a saturated logistic model, with maximum flexible nonlinear age effect represented as natural splines with 5 knots, and with all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. We will not create three-way or higher interactions to avoid singularity. Since this is an initial model, observations with missing age are not used. The model equation is 
 
@@ -292,14 +287,12 @@ f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
 
 
 ```{r, results="asis"}
-mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "saturated-table")
+mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "fone-anova")
 ```
 
-Table \@ref(saturated-table) 
+Table \@ref(fone-anova) 
 
-
-
-
+$\chi^2 - \text{df}$ is the "adjusted" 
 
 
 
@@ -309,28 +302,25 @@ anova plot
 plot(anova(f1))
 ```
 
-
-Model simplification based on hypothesis testing in table \@ref(saturated-table) must be done with extreme care. If we delete a predictor based on a p-value of 0.08, it leads to severe problems phantom degrees of freedom that distort coefficient estimates, confidence intervals, p-value and calibration of the final model. A more robust way is to use backward selection on bootstrap resamples. 
-
+Great care should be taken when one attempts to conduct model simplification based on hypothesis testing and p-values in table \@ref(saturated-table). Deletion of a predictor whose p-value is, say, 0.08, could leads to severe problems phantom degrees of freedom that distort coefficient estimates, confidence intervals, p-value and calibration of the final model [@grambsch1991effects]. A more reliable way is to use some form of variable selection over large number of resamples, and count the number of times a predictor is selected in the final model. 
 
 
-
-```{r, include = FALSE, cache = TRUE}
+```{r, include = FALSE}
+set.seed(2021)
 v1 <- validate(f1, B = 200, bw = TRUE)
 ```
 
-```{r, eval = FALSE}
+```{r, results = "asis"}
 attr(v1, "kept") %>% 
   as_tibble() %>% 
   summarise(across(everything(), sum)) %>% 
   select(where(~ . <= 20)) %>% 
   mylatex(file = "", 
-          table.env = TRUE, label = "data-dictionary", size = "small",
-          caption = "Terms retained less than 20 times in the model in 200 bootstrap resamples", rowname = NULL, where = "h")
+          table.env = TRUE, label = "boot-bw", size = "small",
+          caption = "Terms retained less than 15 times in the model in 200 bootstrap resamples", rowname = NULL, where = "h")
 ```
 
-
-
+Table \@ref(boot-bw) lists predictors with less than 15 presences in the final model during backward selection in 200 bootstrap resamples. These resampling results combined with p-values are then used to guide the pruning of the saturated model. 
 
 ```{r, results = "asis"}
 tribble(
@@ -348,24 +338,10 @@ tribble(
 
 ## Multiple imputation {#imputation}
 
-The pooled estimates are obtained by averaging over $m$ fitted model based on one piece of multiple imputation. The variance-covariance matrix $T$ is calculated using Rudin's rule 
-
-$$
-T = \frac{1}{m}\sum_{i=1}^{m}U_i + (1 + \frac{1}{m})B
-$$
-
-where $U_i$ is the estimated complete-data variance-covariance matrix in each imputation, and $B$ the estimated variance-covariance matrix between the $m$ complete-data estimates. Here we see the one major advantage of multiple imputation over single imputation is that not only does its variance estimates accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations. 
+The goal of multiple imputation is to provide an accurate estimate of the variance-covariance matrix that does not only accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations [@van2018flexible]. As a result, tests on individual parameters gain power and bias are reduced. The general idea is to generate multiple complete dataset, fit the model in parallel, and then obtain a pooled final estimate by averaging over all fitted models. 
 
 
-There are some simple workarounds 
-
-- complete-case analysis: That is, we delete all incomplete observations. Needless to say this will translate into a major harm on sample size since over 60% of `boat` are missing, not to mention other columns. Even if we remove `boat` and then delete rows with missing `age` we still lose over 1/5 of data. Moreover, figures in \@ref(exploratory) have shed light on the relatively strong influence of `age` on survival. Also, the deletion of incomplete observations assumes date are missing completely at random (MCAR). When it's not the case, this could severely bias estimates of coefficients [@van2018flexible]
-
-- single imputation: 
-
-
-- multiple imputation 
-
+In this case study, we need only to impute `age`. The sole decision to be made 
 
 
 ```{r, cache = TRUE}
@@ -382,36 +358,120 @@ densityplot(imp)
 
 
 
-https://www.encyclopedia-titanica.org/community/threads/passengers-who-spoke-other-languages.20103/
-
-Since the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
 
 
 
 
+
+
+
+
+
+## Model fitting, validation and calibration {#fit}
 
 
 ```{r, include = FALSE}
 f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
-            parent * rcs(age, 5) + 
-            spouse + children + 
-            nationality,
+            rcs(age, 5) * parent +  nationality + joined,
             fitter = lrm, 
             imp, 
             data = t)
 ```
 
+anova plot
+
 
 ```{r, results = "asis"}
-mylatex(anova(f2), file = "", size = "small")
+mylatex(anova(f2), file = "", size = "small", table.env = TRUE, label = "ftwo-anova",
+        caption = "Hypothesis testing for the final model")
 ```
 
-$\chi^2 - \text{df}$ is the "adjusted" 
+\@ref(ftwo-anova)
+
+Indexes of model performance. One may absolute accuracy (proportion classified correctly), sensitivity, specificity, precision, and recall are all improper accuracy
+
+\begin{table}[h]
+{\small
+\caption{Model index\label{model-index}} 
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+&Model Likelihood&Discrimination&Rank Discrim.\\
+&Ratio Test&Indexes&Indexes\\\hline
+Obs~\hfill 2208&LR $\chi^{2}$~\hfill 783.83&$R^{2}$~\hfill 0.418&$C$~\hfill 0.813\\
+~~0~\hfill 1496&d.f.~\hfill 41&$g$~\hfill 1.799&$D_{xy}$~\hfill 0.626\\
+~~1~\hfill 712&Pr$(>\chi^{2})$~\hfill \textless 0.0001&$g_{r}$~\hfill 6.053&$\gamma$~\hfill 0.628\\
+$\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.007&&$g_{p}$~\hfill 0.274&$\tau_{a}$~\hfill 0.274\\
+&&Brier~\hfill 0.144&\\
+\hline
+\end{tabular}
+\end{center}}
+\end{table}
 
 
-## Model fitting, validation and calibration {#fit}
 
-There will not be another Titanic, and any model on Titanic will not be used for prediction. Therefore, the goal of model validation is primarily to provide quantify the degree of overfitting with various bias-corrected measures. 
+Point estimate, standard error, Wald statistic and individual p-values.
+
+\setlongtables\begin{longtable}{lrrrr}
+\hline
+\multicolumn{1}{l}{}&\multicolumn{1}{c}{$\hat{\beta}$}&\multicolumn{1}{c}{S.E.}&\multicolumn{1}{c}{Wald $Z$}&\multicolumn{1}{c}{Pr$(>|Z|)$}\tabularnewline
+ \hline
+ \endhead
+ \hline
+ \endfoot
+ Intercept&~ -0.1475~&~ 1.9879~&-0.07&0.9409\tabularnewline
+ age&~  0.2225~&~ 0.1244~& 1.79&0.0737\tabularnewline
+ age'&~ -0.9850~&~ 0.6877~&-1.43&0.1520\tabularnewline
+ age''&~  4.4844~&~ 3.6008~& 1.25&0.2130\tabularnewline
+ age'''&~ -5.5980~&~ 4.9656~&-1.13&0.2596\tabularnewline
+ gender=Male&~ -1.8842~&~ 1.0197~&-1.85&0.0646\tabularnewline
+ class=2nd&~  5.4575~&~ 2.8123~& 1.94&0.0523\tabularnewline
+ class=3rd&~ -1.0535~&~ 1.8583~&-0.57&0.5708\tabularnewline
+ class=crew&~ -2.4149~&~ 3.2651~&-0.74&0.4595\tabularnewline
+ parent=1&~  3.4640~&~ 1.2035~& 2.88&0.0040\tabularnewline
+ nationality=English&~  0.0730~&~ 0.2757~& 0.26&0.7912\tabularnewline
+ nationality=Finnish&~  0.1843~&~ 0.4289~& 0.43&0.6674\tabularnewline
+ nationality=Irish&~  0.0116~&~ 0.3901~& 0.03&0.9763\tabularnewline
+ nationality=Other&~ -0.2328~&~ 0.2669~&-0.87&0.3832\tabularnewline
+ nationality=Swedish&~ -0.2673~&~ 0.3820~&-0.70&0.4840\tabularnewline
+ nationality=Syrian&~ -0.0582~&~ 0.4429~&-0.13&0.8955\tabularnewline
+ joined=Cherbourg&~  0.6565~&~ 0.3321~& 1.98&0.0480\tabularnewline
+ joined=Queenstown&~  0.0538~&~ 0.4133~& 0.13&0.8965\tabularnewline
+ joined=Southampton&~ -0.0632~&~ 0.2003~&-0.32&0.7523\tabularnewline
+ age $\times$ gender=Male&~ -0.1498~&~ 0.0573~&-2.61&0.0090\tabularnewline
+ age' $\times$ gender=Male&~  0.8213~&~ 0.3849~& 2.13&0.0329\tabularnewline
+ age'' $\times$ gender=Male&~ -3.9560~&~ 2.3149~&-1.71&0.0875\tabularnewline
+ age''' $\times$ gender=Male&~  4.8271~&~ 3.5665~& 1.35&0.1759\tabularnewline
+ age $\times$ class=2nd&~ -0.3846~&~ 0.1754~&-2.19&0.0283\tabularnewline
+ age' $\times$ class=2nd&~  1.4771~&~ 0.8999~& 1.64&0.1007\tabularnewline
+ age'' $\times$ class=2nd&~ -6.7250~&~ 4.5517~&-1.48&0.1395\tabularnewline
+ age''' $\times$ class=2nd&~  8.5082~&~ 6.1731~& 1.38&0.1681\tabularnewline
+ age $\times$ class=3rd&~ -0.1403~&~ 0.1159~&-1.21&0.2262\tabularnewline
+ age' $\times$ class=3rd&~  0.7699~&~ 0.6331~& 1.22&0.2240\tabularnewline
+ age'' $\times$ class=3rd&~ -4.9212~&~ 3.2961~&-1.49&0.1354\tabularnewline
+ age''' $\times$ class=3rd&~  7.7752~&~ 4.5292~& 1.72&0.0860\tabularnewline
+ age $\times$ class=crew&~  0.0589~&~ 0.1890~& 0.31&0.7554\tabularnewline
+ age' $\times$ class=crew&~ -0.0468~&~ 0.8023~&-0.06&0.9535\tabularnewline
+ age'' $\times$ class=crew&~ -0.5748~&~ 3.6057~&-0.16&0.8733\tabularnewline
+ age''' $\times$ class=crew&~  1.5477~&~ 4.4606~& 0.35&0.7286\tabularnewline
+ gender=Male $\times$ class=2nd&~ -0.4060~&~ 0.7087~&-0.57&0.5667\tabularnewline
+ gender=Male $\times$ class=3rd&~  2.1475~&~ 0.6288~& 3.41&0.0006\tabularnewline
+ gender=Male $\times$ class=crew&~  0.5495~&~ 0.8726~& 0.63&0.5289\tabularnewline
+ age $\times$ parent=1&~ -0.1190~&~ 0.1118~&-1.06&0.2871\tabularnewline
+ age' $\times$ parent=1&~ -0.6885~&~ 1.1693~&-0.59&0.5560\tabularnewline
+ \newpage
+ age'' $\times$ parent=1&~ 10.4417~&~11.6224~& 0.90&0.3690\tabularnewline
+ age''' $\times$ parent=1&~-29.7852~&~35.4739~&-0.84&0.4011\tabularnewline
+ \hline
+ \end{longtable}
+ \addtocounter{table}{-1}
+
+
+
+
+
+
+There will not be another Titanic, and any model on Titanic will not be used for prediction. Therefore, the goal of model validation is primarily to provide quantify the degree of overfitting with various bias-corrected measures. More accurately, we will be using bootstrap internal validation. 
 
 The van Houwelingen–Le Cessie heuristic shrinkage estimate
 
@@ -425,12 +485,13 @@ the global likelihood ratio statistic for all predictors.
 In the award-winning solution to this legendary dataset presented by IBM Watson, they used a holdout sample to validate their model.  https://www.fharrell.com/post/split-val/
 
 
+validation 
 
-
-```{r, include = FALSE}
+```{r, include = FALSE, cache = TRUE}
 f2 <- update(f2, x = TRUE, y = TRUE)
 v2 <- validate(f2, B = 200)
 ```
+
 
 
 ```{r, results = "asis"}
@@ -446,10 +507,12 @@ $$
 D_{xy} = 2(c - 0.5)
 $$
 
+The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. 
 
-```{r}
+
+```{r, fig.cap = "Calibration curve of the model output probabilites on resampled data"}
 cal <- calibrate(f2, B = 200)
-plot(cal)
+plot(cal, subtitles = FALSE)
 ```
 
 
@@ -466,13 +529,17 @@ influence
 
 
 ```{r, fig.height = 10, fig.cap = "nomogram"}
-plot(nomogram(f1), cex.var = 0.8, cex.axis = 0.6)
+plot(nomogram(f2), cex.var = 0.8, cex.axis = 0.6)
 ```
 
 
 
 
 
+
+https://www.encyclopedia-titanica.org/community/threads/passengers-who-spoke-other-languages.20103/
+
+Since the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
 
 
 
@@ -514,7 +581,7 @@ A variety of other versions and forms of Titanic data sources have been collecte
 
 - **More columns**. Additional variables such as role on the ship, nationality and occupation are added. A major difference is made by separating the travel companion data into four distinct columns: number of parents, children, sibling and spouses that each passenger traveled with. These were combined into two columns before. 
 
-- **More accurate**. `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. The data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects the state of the data as of 21 October 2020. 
+- **More accurate**. `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. During the recent two decades the data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects our our most up-to-date understanding of the event, in the digital form, as of 21 October 2020. 
 
 
 The data cleaning process involves using appropriate data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/clean.R).
