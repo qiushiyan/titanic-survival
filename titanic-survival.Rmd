@@ -144,7 +144,7 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
 
 # Exploration {#exploratory}
 
-## Descriptive statistics and data processing
+## Descriptive statistics and data processing {#descriptive}
 
 A graphical summary of of the data is given by the `Hmisc::describle` function. For numerical variables, a inline histogram is produced alongside summary measures such as the number of missing values and the mean. For discrete variables, we focus on the number of categories and their relative frequency.  
 
@@ -200,7 +200,7 @@ t$children <- if_else(t$children == 0, "0", "1")
 
 Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, we can build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that univariate method cannot detect. 
 
-```{r univariate, fig.height = 7.5, fig.width  = 3.5, fig.cap = "Summary of relationship between survival and each predictor"}
+```{r univariate, fig.height = 7.5, fig.width  = 3.5, fig.cap = "Univariate summary of relationship between survival and each predictor"}
 s <- summary(survived ~ ., 
     data = t)
 plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
@@ -208,13 +208,18 @@ plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 
 The plot shows appreciably strong effects of gender and cabin class on survival status. The effect of age seems trivial except for the missing subjects, but again, this figure exposes only linear relationship, and only after categorization. As we will see in the next section, age effect are much nonlinear and concentrated in the young subjects. The downside of this kind of univariate relationship is also exemplified in `title`, where "Miss". For the same reason effects of other variables cannot be determined. 
 
-We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model.  The checking algorithm involves 
+We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model. The checking algorithm involves 
 
 ```{r, comment = ""}
-redun(~ age  + class +  nationality + title 
+redun(~ age  + gender + class +  nationality + title + spouse +
+        sibling + parent + children
       , data = t)
 ```
 
+
+```{r}
+t$title <- NULL
+```
 
 
 
@@ -237,11 +242,12 @@ p2 <- ggplot(t, aes(age, survived, color = gender)) +
 p3 <- ggplot(t, aes(age, survived, color = class)) + 
   histSpikeg(survived ~ age +  class + gender, lowess = TRUE, data = t) + 
   labs(y = NULL) + 
-  facet_wrap(~ gender)
+  facet_wrap(~ gender) + 
+  theme(legend.position = "bottom")
 (p1 + p2) / p3 
 ```
 
-(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel shows the nonlinear relationship between age and survival status without controlling confounding variables. Other plots give estimates under stratification by sex and class.  
+(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel shows the nonlinear relationship between age and survival status without controlling confounding variables. Other plots give estimates under stratification by sex and class. The top right plot reflects women have a higher survival probability in general, and older females (red) and younger males (blue) are most likely to survive in their respective gender group. Two bottom plots depict survival pattern of subjects from different cabin class condition on sex.
 
 
 
@@ -264,63 +270,108 @@ Machine learning models are data hungry and sometimes create the need for big da
 
 ## Specification {#spec}
 
-We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. 
+We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. This strategy as a starting point is also called prespecification of predictor complexity. It avoids creating phantom degrees of freedom when one has subjective judgment according to scatter diagrams or descriptive statistics on how to represent variables in a model. This approach, however, could distort coefficient estimates, confidence intervals, p-value and calibration of the final model [@grambsch1991effects]. 
 
-This is done by developing a saturated logistic model, with maximum flexible nonlinear age effect represented as natural splines with 5 knots, and with all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. We will not create three-way or higher interactions to avoid singularity. Since this is an initial model, observations with missing age are not used. The model equation is 
+Prespecification of predictor complexity is done by developing a saturated logistic model, with maximum flexible nonlinear age effect represented as natural splines with 5 knots, and with all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. We will not create three-way or higher interactions to avoid singularity. Since this is an initial model, observations with missing age are not used. The model equation is 
 
 ```r
 survived ~ (rcs(age, 5) + gender + class)^2 + (rcs(age, 5) * parent) + 
-            joined + spouse + sibling + 
-            children + nationality + title
+            joined + spouse + sibling + children + nationality 
 ```
 
 ```{r}
 dd <- datadist(t)
 options(datadist = "dd")
 f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
-            (rcs(age, 5) * parent) + joined + 
+            (rcs(age, 5) * parent) +  
             spouse + sibling + children + 
-            nationality + title,
+            joined + nationality,
           data = t, x = TRUE, y = TRUE)
 ```
 
+Table \@ref(fone-anova) sees dominant main effects of gender, age and cabin class, be it linear or nonlinear ($p < 0.0001$). More notably are the strong nonlinear interaction terms between the 3 predictors. Of all 4 companion variables only parent shows promising effect. The impact of port of embarkation is somewhat ambiguous ($p = 0.14$.). As a graphical illustration, figure \@ref(fig:fone-anova-plot) plots "adjusted" partial $\chi^2$ statistic of each predictor in the saturated model, with correction for degrees of freedom allocated to them^[The correction is achieved by subtracting the d.f. from the partial $\chi^2$ ]. This adjustment level the playing field for comparison of predictive ability. The larger the corresponding adjusted $\chi^2$, the more likely a variable would have a non-flat impact on survival status.  
 
 
 ```{r, results="asis"}
-mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "fone-anova")
+mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "fone-anova", where = "h")
 ```
 
-Table \@ref(fone-anova) 
-
-$\chi^2 - \text{df}$ is the "adjusted" 
 
 
-
-anova plot
-
-```{r}
+```{r fone-anova-plot, fig.cap = "(ref:fone-anova-plot)"}
 plot(anova(f1))
 ```
 
-Great care should be taken when one attempts to conduct model simplification based on hypothesis testing and p-values in table \@ref(saturated-table). Deletion of a predictor whose p-value is, say, 0.08, could leads to severe problems phantom degrees of freedom that distort coefficient estimates, confidence intervals, p-value and calibration of the final model [@grambsch1991effects]. A more reliable way is to use some form of variable selection over large number of resamples, and count the number of times a predictor is selected in the final model. 
+(ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
 
 
-```{r, include = FALSE}
+As mentioned before, the goal of the saturated model is guiding model complexity. More specifically, should we allocate more degrees of freedom to a certain term because some complex effects has been underrepresented? Or is there a term that is highly irrelevant and could be deleted? The 5-knots natural spline on age and the resulting nonlinear interaction are powerful, and further increasing knots or creating high-order interactions causes numerical problems. Therefore it is positive advantage to us to keep them as is. 
+
+Yet great care should be taken when one attempts to conduct model simplification based on hypothesis testing and p-values. Deletion of a term whose p-value is, say, 0.08, could lead to severe problems . A more reliable way is using bootstrap resampling. Figure \@ref(fig:predictor-ranking) studies the importance of all terms including main effects and interaction over 500 bootstrap resamples. In each resample, we fit the saturated model, rank all 13 terms by the adjusted statistic $\chi^2 - \text{d.f}$ in ascending order so that 13 is most important and 1 is least important. The height of a bin indicates the number of times a term is ranked at that position.  
+
+
+```{r, include = FALSE, cache = TRUE}
 set.seed(2021)
-v1 <- validate(f1, B = 200, bw = TRUE)
+v1 <- validate(f1, B = 500, bw = TRUE)
 ```
+
+
+
+```{r, cache = TRUE, include = FALSE}
+n <- nrow(t)
+B <- 500
+ranks <- matrix(NA, nrow = B, ncol = 13)
+rank_vars <- function(fit) {
+  rank(plot(anova(fit), sort = "none", pl = FALSE))
+}
+
+Rank <- rank_vars(f1)
+for (i in 1:B) {
+  j <- sample(n, replace = TRUE)
+  fit_boot <- try(update(f1, data = t, subset = j), silent = TRUE)
+  if ("try-error" %in% class(fit_boot)) {
+    next
+  } else if (!fit_boot$fail) {
+    ranks[i, ] <- rank_vars(fit_boot)
+  }
+}
+```
+
+```{r predictor-ranking, fig.cap = "(ref:ranking)"}
+colnames(ranks) <- names(Rank)
+library(ggridges)
+ranks %>% 
+  as_tibble() %>% 
+  na.omit() %>%
+  tidyr::pivot_longer(everything(), names_to = "predictor", values_to = "rank") %>% 
+  mutate(group = factor(predictor, levels = names(Rank))) %>% 
+  ggplot(aes(rank, group, group = group)) + 
+  geom_density_ridges2(aes(fill = group), stat = "binline", binwidth = 1) +
+  scale_fill_cyclical(values = c("#0000B0", "#7070D0")) +
+  geom_text(aes(y = group + 0.95*after_stat(count/max(count)), 
+                label = ifelse(after_stat(count) >= 40, after_stat(count), "")), 
+            stat = "bin", color = "white", size = 3) + 
+  labs(y = NULL) + 
+  theme_ridges() + 
+  theme(axis.title.x = element_text(hjust =  0.5)) + 
+  scale_x_continuous(breaks = 1:13) + 
+  scale_y_discrete(expand = c(0, 0))  
+```
+
+(ref:ranking) Distribution of importance ranking over 500 bootstrap resamples, 412 of which are actually fitted without numerical problems. Text indicates the number of times a term has a specific ranking, when the term ranked more than 40 times at that position. For example, gender ranks 13 (the most important) in all valid resamples.  
+
 
 ```{r, results = "asis"}
 attr(v1, "kept") %>% 
   as_tibble() %>% 
   summarise(across(everything(), sum)) %>% 
-  select(where(~ . <= 20)) %>% 
+  select(where(~ . <= 40)) %>% 
   mylatex(file = "", 
           table.env = TRUE, label = "boot-bw", size = "small",
-          caption = "Terms retained less than 15 times in the model in 200 bootstrap resamples", rowname = NULL, where = "h")
+          caption = "Terms retained less than 50 times in the model in 500 bootstrap resamples", rowname = NULL, where = "h")
 ```
 
-Table \@ref(boot-bw) lists predictors with less than 15 presences in the final model during backward selection in 200 bootstrap resamples. These resampling results combined with p-values are then used to guide the pruning of the saturated model. 
+Table \@ref(boot-bw) lists predictors with less than 50 presences in the final model during backward selection in 412 valid bootstrap resamples. These resampling results combined with p-values are then used to guide the pruning of the saturated model. 
 
 ```{r, results = "asis"}
 tribble(
@@ -341,7 +392,7 @@ tribble(
 The goal of multiple imputation is to provide an accurate estimate of the variance-covariance matrix that does not only accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations [@van2018flexible]. As a result, tests on individual parameters gain power and bias are reduced. The general idea is to generate multiple complete dataset, fit the model in parallel, and then obtain a pooled final estimate by averaging over all fitted models. 
 
 
-In this case study, we need only to impute `age`. The sole decision to be made 
+In this case study, we need only to impute `age`. The crucial decision is the choice of imputation methods. We opt for predictive mean matching.  
 
 
 ```{r, cache = TRUE}
@@ -489,7 +540,7 @@ validation
 
 ```{r, include = FALSE, cache = TRUE}
 f2 <- update(f2, x = TRUE, y = TRUE)
-v2 <- validate(f2, B = 200)
+v2 <- validate(f2, B = 500)
 ```
 
 
@@ -586,8 +637,7 @@ A variety of other versions and forms of Titanic data sources have been collecte
 
 The data cleaning process involves using appropriate data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/clean.R).
 
-`title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".]
-
+`title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".] This is a predictor that has been widely reported to have good predictive ability in many submissions. However, as we see in the redundancy analysis at the end of Section \@ref(descriptive), it should not even be accepted in the tentative, saturated model. 
 
 Passengers are classified according to their cabin class. Others on the vessel fall into one of crew and staff members. Crew includes victualling crew^[crew in charge of food, housekeeping, laundry, room service, etc.], engineering crew, deck crew and officers, substitute crew and guarantee group. Staff members include restaurant staff and orchestra. 
 
