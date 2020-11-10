@@ -1,11 +1,10 @@
 library(dplyr)
 library(forcats)
 
-# 1. exclude some columns 
+# 1. exclude identification columns 
 # 2. collapse low frequency levels in categorical variables 
-# 3. create new columns: title
-# 4. join another table to companion info
-
+# 3. create new column: title
+# 4. join companion table
 # source: encyclopedia-titanica.org
 titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xlsx", 
                                skip = 1, n_max = 2208) %>%
@@ -41,7 +40,7 @@ titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xl
   relocate(survived) 
 
 
-# table with family relations 
+# table of commpanion variables
 rel <- readr::read_csv("data/query_result.csv") %>% 
   select(url = ETURL,
          age_approx = dob_approx,
