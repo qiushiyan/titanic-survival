@@ -59,7 +59,8 @@ library(ggplot2) # visualization
 library(rms) # modeling
 library(mice) # imputation for missing data
 library(patchwork) # plot composition
-library(rpart) # decision tree for mis
+library(rpart) # decision tree for missing values
+library(scales) # percentage formatting
 # latex print option
 options(prType='latex')
 # load raw data
@@ -112,14 +113,13 @@ After appropriate formatting and cleaning, the data at hand recorded the surviva
 
 It is essential for every fruitful task of data analysis to first identify key questions of investigation that facilitates interpretation, however vague they are at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes, we could establish the following questions for which to quest
 
-- To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
+*Question 1*: To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
 
+*Question 2*: Did socio-economic advantages mean better chance of survival? If this is the case, passengers with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people. Cabin class's impact on survival status needs special notice here. 
 
-- Did socio-economic advantages mean better chance of survival? If this is the case, passengers with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people. Cabin class's impact on survival status needs special notice here. 
+*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
 
-- For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
-
-- Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
+*Question 4*: Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
 
 - Quantify interactions among various characteristics. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
@@ -132,14 +132,12 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
 
   - [Specification](#spec) Prespecification of predictor complexity with a saturated model. Guide later development of the final model with importance ranking based on bootstrap resampling. 
   
-  - [Multiple imputation](#imputation): Use predictive mean matching to impute subject's age, resulting in 30 complete dataset. 
+  - [Multiple imputation](#imputation): We use predictive mean matching to impute subject's age, resulting in 30 complete dataset. 
   
-  - [Model fitting, validation and calibration](#fit). Obtain pooled parameter estimates based on prespecified complexity and imputation results. Use bootstrap validation and calibration curve (the ".632" method) to study model performance and optimism. 
+  - [Model fitting and validation](#fit). We fit final pooled model over 30 imputed dataset. Bootstrap internal validation (the ".632" method) is used to study optimism-corrected index measuring discrimination and calibration. 
 
-  - [Interpratation](#interpretation). Summarize the model with estimation and hypothesis testing, combined with graphical methods like partial effect plots and nomogram. 
-  
-  
-- [Discussion](#discussion). Model-based explanation to address former questions. 
+
+- [Interpratation and discussion](#interpretation). We describe the model with both graphical methods such as partial effect plots and statistical testing. This provies model-based explanation to address research problems.  
 
 - [Conclusion](#conclusion). Conclusion and further study.  
 
@@ -229,10 +227,6 @@ t$title <- NULL
 
 ## Loess regression for nonlinear pattern 
 
-The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If the trend of a loess curve exhibits nonmonotoncity, it is reasonable to include that nonlinearity relationship in the model, e.g., modeling the predictor with polynomial transformation or with splines. 
-
-It was widely documented that gender interacts directly with age effects. Another important interaction, according to many follow up studies, happened with cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. 
-
 ```{r loess-curve, fig.height = 7.5, fig.cap = "(ref:loess-curve)"}
 p1 <- ggplot(t, aes(age, survived)) +
   histSpikeg(survived ~ age, lowess = TRUE, data = t) + 
@@ -248,6 +242,12 @@ p3 <- ggplot(t, aes(age, survived, color = class)) +
 (p1 + p2) / p3 
 ```
 
+The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If the trend of a loess curve exhibits nonmonotoncity, it is reasonable to include that nonlinearity relationship in the model, e.g., modeling the predictor with polynomial transformation or with splines. 
+
+It was widely documented that gender interacts directly with age effects. Another important interaction, according to many follow up studies, happened with cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. 
+
+
+
 (ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel indicates nonlinear age effect without controlling other factors. Other plots give estimates under stratification by sex and class. The top right plot reflects women have a higher survival probability in general, and older females (red) and younger males (blue) are most likely to survive in their respective gender group. Two bottom plots depict survival pattern of subjects from different cabin class condition on sex.
 
 
@@ -262,7 +262,7 @@ A typical modeling workflow begins with an choice of a statistical model or a ma
 
 We prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the value of the model consist not in a dichotomous prediction, but in what characteristics would increase or decrease the possibility of survival. The notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
 
-Interpretability and inference matters. Many top data science competitions has reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, while interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
+Interpretability and inference matters. Many top data science competitions has reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, whereas interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
 
 Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. To guard against overfitting, the analyst has to have a sample size that is 10 times larger at least if he chooses a tree model instead of regression. While this case study uses a Titanic dataset that is about 1/3 larger than those only concerned with passengers, it is far less sufficient for a typical data-hungry machine learning model to validate well. The rationale is that a statistical model is a safer approach as Dr. Harrell commented
 
@@ -275,11 +275,6 @@ We start by fitting a relatively large model, to decide how model complexity sho
 
 Prespecification of predictor complexity is done first by developing a saturated logistic model and then making necessary adjustments and improvements. In this model, we granted age effect maximal flexibility represented as natural splines with 5 knots, and all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. Since this is an initial model, observations with missing age are not used. The model equation is 
 
-```r
-survived ~ (rcs(age, 5) + gender + class)^2 + (rcs(age, 5) * parent) + 
-            joined + spouse + sibling + children + nationality 
-```
-
 ```{r}
 dd <- datadist(t)
 options(datadist = "dd")
@@ -290,8 +285,17 @@ f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
           data = t, x = TRUE, y = TRUE)
 ```
 
-Table \@ref(fone-anova) sees dominant main effects of gender, age and cabin class, be it linear or nonlinear ($p < 0.0001$). More notably are the strong nonlinear interaction terms between the 3 predictors. Of all 4 companion variables only parent manifests strong influence. The impact of port of embarkation is somewhat ambiguous ($p = 0.14$.). As a graphical illustration, figure \@ref(fig:fone-anova-plot) plots "adjusted" partial $\chi^2$ statistic of each predictor in the saturated model, with correction for degrees of freedom allocated to them.^[The correction is done by subtracting the d.f. from the partial $\chi^2$ statistic, its expected value under the null hypothesis.] This adjustment levels the playing field for comparison of predictive ability. The larger the corresponding adjusted $\chi^2$, the more likely a variable would have a non-flat impact on survival status.  
 
+
+
+
+(ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
+
+
+```r
+survived ~ (rcs(age, 5) + gender + class)^2 + (rcs(age, 5) * parent) + 
+            joined + spouse + sibling + children + nationality 
+```
 
 ```{r, results="asis"}
 mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothesis testing for the saturated model", label = "fone-anova", where = "h")
@@ -303,11 +307,8 @@ mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothe
 plot(anova(f1))
 ```
 
-(ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
 
-
-As mentioned before, the goal of the saturated model is guiding model complexity. More specifically, should we allocate more degrees of freedom to a certain term because some complex effects has been underrepresented? Or is there a term that is highly irrelevant and could be deleted? The 5-knots natural spline on age and the resulting nonlinear interaction are promising, and further increasing knots or creating high-order interactions causes numerical problems. Therefore it is positive advantage to us to keep them as is. There are also not sufficient reasons to collapse levels for nationality and port.  Binary variables like spouse and sibling have extremely large p-values ($p > 0.5$), indicating relatively small predictive power. Still,  great care should be taken when one attempts to conduct aggressive model simplification based on hypothesis testing and p-values. A reliable way is using bootstrap resampling. Figure \@ref(fig:predictor-ranking) studies the importance of all terms including main effects and interaction over 500 bootstrap resamples. In each resample, we fit the saturated model, rank all 13 terms by the adjusted statistic $\chi^2 - \text{d.f.}$ in ascending order so that 13 is most important and 1 is least important. The height of a bin indicates the number of times a term is ranked at that position. 
-
+Table \@ref(fone-anova) selects specific hypothesis to test for general power, linearity and additivity assumptions of individual predictors, as well as their "chunky" version of global effects. We see dominant main effects of gender, age and cabin class, be it linear or nonlinear ($p < 0.0001$) More notably are the strong nonlinear interaction terms between the three. Of all four companion variables only parent manifests clear predictive ability. The impact of embarkation point is somewhat ambiguous ($p = 0.14$). As a graphical illustration, figure \@ref(fig:fone-anova-plot) plots "adjusted" partial $\chi^2$ statistic of each predictor in the saturated model, with correction for degrees of freedom allocated to them.^[The correction is done by subtracting the d.f. from the partial $\chi^2$ statistic, its expected value under the null hypothesis.] This adjustment levels the playing field for comparison of predictive ability. The larger the adjusted $\chi^2$, the more likely a variable would have a non-flat impact on survival status.  
 
 ```{r, include = FALSE, cache = TRUE}
 set.seed(2021)
@@ -360,6 +361,11 @@ ranks %>%
 (ref:ranking) Distribution of importance ranking over 500 bootstrap resamples, 412 of which are actually fitted without numerical problems. Text indicates the number of times a term has a specific ranking, when the term ranked more than 40 times at that position. For example, gender ranks 13 (the most important) in all valid resamples.  
 
 
+As mentioned before, the goal of the saturated model is guiding model complexity. More specifically, should we allocate more degrees of freedom to a certain term because some complex effects has been underrepresented? Or is there a term that is highly irrelevant thus could be deleted? The polynomial transformation on age and the resulting nonlinear interaction carry substantial statistical power, while further increasing knots or creating high-order interactions causes numerical problems. Therefore, it is positive advantage to us to keep them as is. There are also not sufficient reasons to collapse levels for nationality and port.  Binary variables like spouse and sibling have extremely large p-values ($p > 0.5$), indicating relatively small predictive power. Still,  great care should be taken when one attempts to conduct aggressive model simplification based on hypothesis testing and p-values. A reliable way is using bootstrap resampling. Figure \@ref(fig:predictor-ranking) studies the importance of all terms including main effects and interaction over 500 bootstrap resamples. In each resample, we fit the saturated model, rank all 13 terms by the adjusted statistic $\chi^2 - \text{d.f.}$ in ascending order so that 13 is most important and 1 is least important. The height of a bar indicates the number of times a term is ranked at that position. 
+
+
+
+
 The importance ranking echoes previous findings that gender, age and cabin class are predominant factors. It also reveals great variability in terms of assessing predictive power. For example, we are only confident that `joined` is not one of the 5 most influential predictors. Nonetheless, rankings of the aforementioned "weak" variables, sibling and spouse, are highly concentrated at 1 to 3.  In fact, if we perform backward selection in nearly 500 bootstrap resamples with AIC as stopping rule, none of the 3 binary variables entered the selected model more than 20 times. This results in the final decision to remove them in the final model. 
 
 ```{r, echo = TRUE}
@@ -371,11 +377,6 @@ t$spouse <- NULL
 
 ## Multiple imputation {#imputation}
 
-The last step before fitting the final model is imputing missing values for age. The goal of multiple imputation, in contrast to simple alternatives such as filling in conditional mean, is to provide an accurate estimate of the variance-covariance matrix that not only accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations [@van2018flexible]. Thus tests on individual parameters gain power and bias are reduced. The general idea is to generate multiple complete dataset, fit the model in parallel, and then obtain a pooled final estimate by averaging over all fitted models. 
-
-
-We use predictive mean matching with $m = 30$, since approximately 30% age are missing. The method selects a group of Titanic subjects from all complete cases that have predicted values closest to the predicted value for the subject with missing age. ^[The predicted value is generated by fitting a linear main effect model conditional on all other variables.] One donor is randomly drawn from the candidates, and the observed age of the donor is taken to replace the missing value. We use the default "type 1 matching" and 5 donors (@van2018flexible, Section 3.4.2). Advantages of predictive mean matching in the Titanic age setting are manifold. Since imputations are based on values observed elsewhere, they are realistic (e.g., no negative age). For another, it is compatible with non-normaility which allows us to have fewer assumptions. 
-
 
 ```{r, cache = TRUE, echo = TRUE}
 # multiple imputation with predictive mean matching to generate 30 complete dataset
@@ -386,6 +387,14 @@ imp <- mice(t, method = "pmm", m = 30, printFlag = FALSE)
 densityplot(imp)
 ```
 
+The last step before fitting the final model is imputing missing values for age. The goal of multiple imputation, in contrast to simple alternatives such as filling in conditional mean, is to provide an accurate estimate of the variance-covariance matrix that not only accounts for sampling variability, but also for the extra variance caused by missing values and finite number of imputations [@van2018flexible]. Thus tests on individual parameters gain power and bias are reduced. The general idea is to generate multiple complete dataset, fit the model in parallel, and then obtain a pooled final estimate by averaging over all fitted models. 
+
+
+We use predictive mean matching with $m = 30$, since approximately 30% of age is missing. The nonparametric method selects a group of Titanic subjects from all complete cases that have predicted values closest to the predicted value for the subject with missing age. ^[The predicted value is generated by fitting a linear main effect model conditional on all other variables.] One donor is randomly drawn from the candidates, and the observed age of the donor is taken to replace the missing value. We use the default "type 1 matching" and 5 donors (@van2018flexible, Section 3.4.2). Advantages of predictive mean matching in the Titanic age setting are manifold. Since imputations are based on values observed elsewhere, they are realistic (e.g., no negative age). For another, it is compatible with non-normaility which allows us to have fewer assumptions. 
+
+
+
+
 
 
 
@@ -394,7 +403,7 @@ densityplot(imp)
 
 ## Model fitting, validation and calibration {#fit}
 
-We fit the final logistic model for 30 complete dataset. Parameter estimates are obtained by averaging over all dataset. We also get an imputation-corrected variance–covariance matrix based on within– and between–imputation variances. 
+We now fit the final logistic model across 30 complete dataset. Pooled estimates are obtained by averaging over all pieces. We also get an imputation-corrected variance–covariance matrix based on within– and between–imputation variances. Individual estimates are listed below. 
 ```{r, include = FALSE, cache = TRUE}
 f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
             rcs(age, 5) * parent + children + nationality + joined,
@@ -403,32 +412,6 @@ f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
             data = t)
 ```
 
-Table \@ref(ftwo-anova) again lists meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreased by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development. Table \@ref(model-index) prints model assessment metrics and details individual parameters. The model exhibits moderate discrimination power, e.g. the ability to separate perished and survived subjects (concordance probability $=$ area under the ROC curve $\approx 0.81$).  Brier score, as a proper quadratic scoring rule that incorporate both aspects, is a promising $0.144$. 
-
-
-```{r, results = "asis"}
-mylatex(anova(f2), file = "", size = "small", table.env = TRUE, label = "ftwo-anova",
-        caption = "Hypothesis testing for the final model", where = "h")
-```
-
-
-
-\begin{table}[h]
-\caption{Model index and estimation\label{model-index}} 
-\begin{center}\small
-\begin{tabular}{|c|c|c|c|}
-\hline
-&Model Likelihood&Discrimination&Rank Discrim.\\
-&Ratio Test&Indexes&Indexes\\\hline
-Obs~\hfill 2208&LR $\chi^{2}$~\hfill 783.83&$R^{2}$~\hfill 0.418&$C$~\hfill 0.813\\
-~~0~\hfill 1496&d.f.~\hfill 41&$g$~\hfill 1.799&$D_{xy}$~\hfill 0.626\\
-~~1~\hfill 712&Pr$(>\chi^{2})$~\hfill \textless 0.0001&$g_{r}$~\hfill 6.053&$\gamma$~\hfill 0.628\\
-$\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.007&&$g_{p}$~\hfill 0.274&$\tau_{a}$~\hfill 0.274\\
-&&Brier~\hfill 0.144&\\
-\hline
-\end{tabular}
-\end{center}
-\end{table}
 
 \small
 \setlongtables\begin{longtable}{lrrrr}
@@ -488,9 +471,32 @@ $\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.007&&$g_{p}$~\hfill 0.274
 \normalsize
 
 
+Table \@ref(ftwo-anova) again constructs meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreased by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development. Table \@ref(model-index) prints model assessment metrics and details individual parameters. The model exhibits moderate discrimination power, e.g. the ability to separate perished and survived subjects (concordance probability $=$ area under the ROC curve $\approx 0.81$).  Brier score, as a proper quadratic scoring rule that incorporate both aspects, is a promising $0.144$. 
 
 
-Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presented unbiased, optimism-corrected measures. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
+```{r, results = "asis"}
+mylatex(anova(f2), file = "", size = "small", table.env = TRUE, label = "ftwo-anova",
+        caption = "Hypothesis testing for the final model", where = "h")
+```
+
+
+
+\begin{table}[h]
+\caption{Model index and estimation\label{model-index}} 
+\begin{center}\small
+\begin{tabular}{|c|c|c|c|}
+\hline
+&Model Likelihood&Discrimination&Rank Discrim.\\
+&Ratio Test&Indexes&Indexes\\\hline
+Obs~\hfill 2208&LR $\chi^{2}$~\hfill 783.83&$R^{2}$~\hfill 0.418&$C$~\hfill 0.813\\
+~~0~\hfill 1496&d.f.~\hfill 41&$g$~\hfill 1.799&$D_{xy}$~\hfill 0.626\\
+~~1~\hfill 712&Pr$(>\chi^{2})$~\hfill \textless 0.0001&$g_{r}$~\hfill 6.053&$\gamma$~\hfill 0.628\\
+$\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.007&&$g_{p}$~\hfill 0.274&$\tau_{a}$~\hfill 0.274\\
+&&Brier~\hfill 0.144&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
 
 
 ```{r, include = FALSE, cache = TRUE}
@@ -498,60 +504,70 @@ f2 <- update(f2, x = TRUE, y = TRUE)
 v2 <- validate(f2, B = 500, method = ".632")
 ```
 
-
-As an improved alternative, we choose Efron's 0.632 method for bootstrap internal validation. In each of the 494 bootstrap resamples, a model is developed and evaluated on observations omitted from bootstrap samples. Per-bootstrap optimism is then the apparent index of accuracy subtracting that in the test sample formed by omitted observations. An weighted average $\hat{\varepsilon}_0$ over all 494 bootstrap resamples is computed to estimate the true optimism, while the bias-corrected
-estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is the a measure in how separated predictions are for survivors and victims. 
-
 ```{r, results = "asis"}
 mylatex(v2, file = "", size = "small", table.env = TRUE,
         label = "model-val", caption = "Optimism-corrected metrics", where = "h")
 ```
 
 
-The output does not deviate much from the apparent index. The validated area under the ROC curve as well as the concordance probability is now `r round((v2["Dxy", "index.orig"]/2)+0.5, 2)`, and pseudo $R^2$ 0.35.  This indicates certain shortage of discrimination ability in comparison to some published models on the older dataset, resulting in an moderate accuracy of $0.81$ with cutoff at $0.5$. $\text{Slope} = 0.8$ signals small amount of overfitting, with coefficients shrinking by 20% on new data.^[$D_{xy} = 2(\text{concordance proabability - 0.5})$]. Brier score is now near 0.15. 
 
-Aside from rank-based discrimination metrics, figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration.  The actual probability is estimated with loess regression, and the bias correction is achieved in a similar way as in table \@ref(model-index). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in lower and certain middle region. The mean squared error and 0.9 quantile of absolute error
-is 0.00018 and 0.023 respectively. 
+```{r, cal-curve, fig.cap = "(ref:cal-curve)", out.width = "90%"}
+knitr::include_graphics("images/cal-curve.png")
+```
 
-To sum up, the model presents reasonable discrimination power and satisfactory quality of fitting. Excellent performance in calibration lifts overall metrics such as Brier score
+(ref:cal-curve) Bias-corrected calibration curve from internal bootstrap validation. Predictions output by the final model are plotted against estimated actual probabilities with loess. Bars on the top indicates number of observations in the same prediction bin. The bias corrected line is close to the ideal 45 degree line
 
-```{r, cache = TRUE, include = FALSE}
+Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presented unbiased, optimism-corrected measures. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
+
+
+
+As an improved alternative, we choose Efron's 0.632 method for bootstrap internal validation. In each of the 494 bootstrap resamples, a logistic model is developed and evaluated on observations omitted from bootstrap samples. Per-bootstrap optimism is then the apparent index of accuracy subtracting that in the test sample formed by omitted observations. An weighted average $\hat{\varepsilon}_0$ over all 494 bootstrap resamples is computed to estimate the true optimism, while the bias-corrected
+estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is the a measure in how separated predictions are for survivors and victims. 
+
+```{r, cache = TRUE, include = FALSE, eval = FALSE}
 cal <- calibrate(f2, B = 500)
 ```
 
 
 
-```{r, cal-curve, fig.cap = "Bias-corrected calibration curve of the model output probabilites on bootstrap resamples", out.width = "90%"}
-knitr::include_graphics("cal-curve.png")
-```
+The output does not deviate much from the apparent index. The validated area under the ROC curve as well as the concordance probability is now `r round((v2["Dxy", "index.corrected"]/2)+0.5, 2)`, and pseudo $R^2$ 0.35.  This indicates certain shortage of discrimination ability in comparison to some published models on the older dataset. $\text{Slope} = 0.8$ signals small amount of overfitting, with coefficients shrinking by 20% on new data.^[$D_{xy} = 2(\text{concordance proabability - 0.5})$]. Brier score is now near 0.15. 
 
 
 
 
-## Interpretation 
+Aside from rank-based discrimination index, figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration.  The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-index). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in lower and certain middle region. The mean squared error and 0.9 quantile of absolute error
+is 0.00018 and 0.023, respectively. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflects strong calibration. 
 
-
-
-
-
-
+To sum up, the model presents reasonable discrimination power and satisfactory quality of fitting. Excellent performance in calibration lifts overall metrics such as Brier score.
 
 
 
 
 
 
-```{r}
+# Interpretation and discussion {#interpretation}
+
+With non-monotonic relations and interaction between predictors, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category. 
+
+
+
+
+
+(ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class while other predictors held constant at parent $= 0$, children $= 0$, nationality $=$ English, and port $=$ Southampton. Shaded region shows 95% confidence interval. 
+
+Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. This can be used to address question 1 and 2, where we need to inspect all these three variables' influence on survival status. We want to know if women, youth and higher class results in greater chance to survive. First note that the confidence interval is extremely wide for young first class passengers, and for the crew whose age is not in the middle. Thus we tend to only interpret their age effects where the prediction is less variable.  
+
+Women and children are evacuated first in general, supported both by data and stories. `r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))` of the women and `r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))` of the children (age under 12) were saved, but only `r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))` of the men. There was also recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away". 
+
+
+```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)"}
 ggplot(Predict(f2, age, gender, class, 
                parent = 0, children = 0, nationality = "English", joined = "Southampton",
-               fun = plogis, ))
+               fun = plogis), legend.position = "none",
+       colorscale = function(...) scale_color_manual(values = c("blue", "orange")))
 ```
 
-```{r}
-ggplot(Predict(f2, joined, fun = plogis))
-```
-
-
+However, this code of conduct is not respected among third class passengers, where we see two abnormal trends. Firstly, people in their prime have higher predicted survival possibility. The survival curve displays an inverted U-shape, where people aged around  for both men and women. Secondly, the gender gap also narrowed, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
 
 
 
@@ -567,9 +583,6 @@ Since the crew's instructions (in English) tended to be along the lines of "Wait
 
 
 
-# Discussion 
-
-
 The most decisive explanation for such effect is that first-class passengers had better access to information about the
 imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers had no idea where the lifeboats were located (safety drills for all passengers were introduced after the Titanic disaster), and they did not know how to reach the upper decks where the lifeboats were stowed.  
 
@@ -578,9 +591,18 @@ Wyn Craig Wade: there was a class culture on Titanic akin to the notion of a "cu
 > Undoubtedly, the worst barriers were the ones within the steerage passengers themselves. Years of conditioning as third-class citizens led a great many of them to give up hope as soon as the crisis became evident ... Barriers to steerage? Yes, but of a kind less indictable to the White Star Line than to the whole of civilization.
 
 
-A more detailed explanation of some of these measures is presented in the [appendix](#measures). 
 
-*Women and children first only for higher class passengers*. If you are a third class female
+
+One last discovery concerns embarkation point. Passengers boarded at Cherbourg have a surprisingly higher survival rate of over $50\%$.  
+
+```{r, fig.height = 4}
+ggplot(Predict(f2, joined, fun = plogis), anova = anova(f2), pval = TRUE, size.anova = 3.5)
+```
+
+
+```{r, out.width = "90%", fig.cap ="The Titanic's route. Source: https://evansexpertsattheroutethird.weebly.com/route"}
+knitr::include_graphics("images/route.png")
+```
 
 
 
@@ -617,19 +639,41 @@ Rare nationality (lower than 50 people) is collapsed.
 
 Age information is presented as non-missing on the surface yet there is an indicator column representing when a person's age is only approximate and cannot be fully determined from current facts. These inaccurate age have been assigned NA. There were also ten subjects whose four companion variables were all explicitly missing. For simplicity, the mode `0` is filled in. Therefore, the problem of missing data is reduced to univariate missing of `age`.   
 
-Variables we do not utilize in this project includes name, date of birth and death, lifeboat number^[There were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1. In this sense `boat` is more the result of survival, rather than a cause.], fare, and cabin number.^[While some study used this attribute to find cabin locations, its large amount of missingness could be a major source of complexity.]
+Variables we do not utilize in this project includes name, date of birth and death, lifeboat number^[There were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1. In this sense `boat` is more the result of survival, rather than a cause.], fare, and cabin number.^[Although some study used this attribute to find cabin locations, its large amount of missingness could be a major source of complexity.]
 
 # Model formula 
 
-The formula for our binary logistic model 
+\[{\rm Prob}\{{\rm survived}=1\} = \frac{1}{1+\exp(-X\beta)}, {\rm \ \ where} \\ \]
+\begin{eqnarray*}
+\small
+\lefteqn{X\hat{\beta}=}\\
+& & 0.01051937 \\
+& & + 0.212622     {\rm age}-0.0005693763({\rm age}-10)_{+}^{3}+0.00243494   ({\rm age}-22)_{+}^{3}  \\
+& &   -0.00296655  ({\rm age}-29)_{+}^{3}+0.001247244  ({\rm age}-37)_{+}^{3}-0.0001462583({\rm age}-54.65)_{+}^{3}  \\
+& &  -1.976675[{\rm Male}] \\
+& &  +4.807962 [{\rm 2nd}]-1.20667 [{\rm 3rd}]-2.373247[{\rm crew}] \\
+& &  +3.484454[{\rm 1}] \\
+& &  +0.9160294[{\rm 1}] \\
+& &  +0.09633225 [{\rm English}]+0.230353   [{\rm Finnish}]+0.02481168 [{\rm Irish}]-0.2209938 [{\rm Other}] \\
+& &  -0.2027473 [{\rm Swedish}]-0.03927193[{\rm Syrian}] \\
+& &  +0.6509122  [{\rm Cherbourg}]+0.1320052  [{\rm Queenstown}]-0.06351243[{\rm Southampton}] \\
+& &  +[{\rm Male}][-0.1405648   {\rm age}+0.0004524996 ({\rm age}-10)_{+}^{3}-0.002005646 ({\rm age}-22)_{+}^{3}  \\
+& &  +0.002351455  ({\rm age}-29)_{+}^{3}-0.0008518177({\rm age}-37)_{+}^{3}  \\
+& &   +0.00005350913({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm 2nd}][-0.3419093  {\rm age}+0.0007375354({\rm age}-10)_{+}^{3}-0.003089915({\rm age}-22)_{+}^{3}  \\
+& &  +0.003795193 ({\rm age}-29)_{+}^{3}-0.001665266({\rm age}-37)_{+}^{3}+0.0002224522({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm 3rd}][-0.1350322  {\rm age}+0.0004403169({\rm age}-10)_{+}^{3}-0.002559262({\rm age}-22)_{+}^{3}  \\
+& &  +0.003927355 ({\rm age}-29)_{+}^{3}-0.002087077({\rm age}-37)_{+}^{3}+0.0002786668({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm crew}][0.05036612   {\rm age}+0.0000222523 ({\rm age}-10)_{+}^{3}-0.0005447881({\rm age}-22)_{+}^{3}  \\
+& &  +0.001158836  ({\rm age}-29)_{+}^{3}-0.0007325991({\rm age}-37)_{+}^{3}  \\
+& &   +0.00009629903({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm Male}][-0.4116912\:[{\rm 2nd}]+2.182068  \:[{\rm 3rd}]+0.5489062 \:[{\rm crew}] ] \\
+& &  +[{\rm 1}][-0.1204537   {\rm age}-0.0004222734({\rm age}-10)_{+}^{3}+0.005086125  ({\rm age}-22)_{+}^{3}  \\
+& &   -0.01293022  ({\rm age}-29)_{+}^{3}+0.01045057   ({\rm age}-37)_{+}^{3}-0.002184206 ({\rm age}-54.65)_{+}^{3}  ] \\
+\end{eqnarray*}
+and \([c]=1\) if subject is in group \(c\), 0 otherwise; \((x)_{+}=x\) if \(x > 0\), 0 otherwise\
 
 
-
-
-
-# Criterion used in model validation {#measures}
-
-Somer's $D_{xy}$ index is a calibration measure, which is the rank correlation between predicted and actual response. It has a close relationship with the C index 
 
 
 
