@@ -208,7 +208,7 @@ plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 
 The plot reveals appreciably strong effects of gender and cabin class on survival status. The effect of age seems trivial except for the missing subjects, but again, this figure exposes only linear relationship, and only after categorization. As we will see in the next section, age effect are much nonlinear and concentrated in the young subjects. The downside of this kind of univariate relationship is also exemplified in `title`, where "Miss". For the same reason effects of other variables cannot be determined. 
 
-We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model. The checking algorithm involves 
+We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then use OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
 
 ```{r, comment = ""}
 redun(~ age  + gender + class +  nationality + title + spouse +
@@ -216,9 +216,9 @@ redun(~ age  + gender + class +  nationality + title + spouse +
       , data = t)
 ```
 
-The redundancy analysis has reported , with more than 97% of uts variation explained by the rest of the predictors. 
+The redundancy analysis has reported `title` as redundant, with more than 97% of its variation explained by the rest of the predictors. It is not surprising that knowing a person' age could almost determine his/her title in the four categories. This means including `title` contains nearly no predictive value and could be readily deleted. 
 
-```{r}
+```{r, echo = TRUE}
 t$title <- NULL
 ```
 
@@ -546,7 +546,7 @@ To sum up, the model presents reasonable discrimination power and satisfactory q
 
 # Interpretation and discussion {#interpretation}
 
-With non-monotonic relations and interaction between predictors, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category. 
+With non-monotonic relations and interactions involved, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category. 
 
 
 
