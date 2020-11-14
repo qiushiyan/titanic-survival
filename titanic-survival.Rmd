@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained. This analysis is fully reproducible with all source R code and text. 
+   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap internal validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained, touching on key issues such as the choice of a statistical model or a machine learning model, using bootstrap to alleviate selection bias, disadvantages of the holdout sample approach in validation, and more. This analysis is fully reproducible with all source R code and text. 
 bibliography: references.bib
 link-citations: true
 geometry: "margin=1in"
@@ -111,7 +111,7 @@ tribble(
 
 After appropriate formatting and cleaning, the data at hand recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. 
 
-It is essential for every fruitful task of data analysis to first identify key questions of investigation that facilitates interpretation, however vague they are at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes, we could establish the following questions for which to quest
+It is essential for every fruitful task of data analysis to first identify key questions of investigation that facilitates interpretation, however vague they are at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes, we could establish the following research questions. 
 
 *Question 1*: To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
 
@@ -149,11 +149,11 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
 
 A graphical summary of of the data is given by the `Hmisc::describle` function. For numerical variables, a inline histogram is produced alongside summary measures such as the number of missing values and the mean. For discrete variables, we focus on the number of categories and their relative frequency.  
 
-```{r, echo = TRUE, results = "asis"}
+```{r, echo = FALSE, results = "asis"}
 # print a summary for the data
 t %>% 
   describe() %>%
-  latex(file = "", size = "small", center = "none")
+  latex(file = "", size = "small")
 ```
 
 
@@ -198,7 +198,7 @@ t$sibling <- if_else(t$sibling == 0, "0", "1")
 t$children <- if_else(t$children == 0, "0", "1")
 ```
 
-Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, we can build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that univariate method cannot detect. 
+Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, we build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that the univariate method fails to detect. 
 
 ```{r univariate, fig.height = 7.5, fig.width  = 3.5, fig.cap = "Univariate summary of relationship between survival and each predictor"}
 s <- summary(survived ~ ., 
@@ -242,9 +242,9 @@ p3 <- ggplot(t, aes(age, survived, color = class)) +
 (p1 + p2) / p3 
 ```
 
-The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If the trend of a loess curve exhibits nonmonotoncity, it is reasonable to include that nonlinearity relationship in the model, e.g., modeling the predictor with polynomial transformation or with splines. 
+The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If a loess curve exhibits a reasonable degree of nonmonotonicity, it will often pay to not assume linearity, e.g., modeling the predictor with polynomial transformation or with splines. 
 
-It was widely documented that gender interacts directly with age effects. Another important interaction, according to many follow up studies, happened with cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. 
+It was widely documented that gender interacts directly with age, in other words, age effects for men and women are most likely to be nonparallel in the logit scale. Another important interaction, according to many follow up studies, happened with cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under certain stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. Despite that the loess estimation here would by no means serve as a strict inference-oriented model, and we only include 3 factors at this point, it inspires a treatment of these effects that is more thorough and cautious. 
 
 
 
@@ -511,11 +511,6 @@ mylatex(v2, file = "", size = "small", table.env = TRUE,
 
 
 
-```{r, cal-curve, fig.cap = "(ref:cal-curve)", out.width = "90%"}
-knitr::include_graphics("images/cal-curve.png")
-```
-
-(ref:cal-curve) Bias-corrected calibration curve from internal bootstrap validation. Predictions output by the final model are plotted against estimated actual probabilities with loess. Bars on the top indicates number of observations in the same prediction bin. The bias corrected line is close to the ideal 45 degree line
 
 Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presented unbiased, optimism-corrected measures. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
 
@@ -529,14 +524,18 @@ cal <- calibrate(f2, B = 500)
 ```
 
 
+```{r, cal-curve, fig.cap = "(ref:cal-curve)", out.width = "90%"}
+knitr::include_graphics("images/cal-curve.png")
+```
+
+(ref:cal-curve) Bias-corrected calibration curve from internal bootstrap validation. Predictions output by the final model are plotted against estimated actual probabilities with loess. Bars on the top indicates number of observations in the same prediction bin. The bias corrected line is close to the ideal 45 degree line
 
 The output does not deviate much from the apparent index. The validated area under the ROC curve as well as the concordance probability is now `r round((v2["Dxy", "index.corrected"]/2)+0.5, 2)`, and pseudo $R^2$ 0.35.  This indicates certain shortage of discrimination ability in comparison to some published models on the older dataset. $\text{Slope} = 0.8$ signals small amount of overfitting, with coefficients shrinking by 20% on new data.^[$D_{xy} = 2(\text{concordance proabability - 0.5})$]. Brier score is now near 0.15. 
 
 
 
-
-Aside from rank-based discrimination index, figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration.  The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-index). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in lower and certain middle region. The mean squared error and 0.9 quantile of absolute error
-is 0.00018 and 0.023, respectively. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflects strong calibration. 
+Discrimination index are often associated with rank correlations between predictions and response, thus may not be sensitive enough to evaluate their closeness. Figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration. The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-index). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in central region where there were few observations. The mean squared error is 0.00018, and the 0.9 quantile of absolute error
+is 0.023. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflects strong calibration. 
 
 To sum up, the model presents reasonable discrimination power and satisfactory quality of fitting. Excellent performance in calibration lifts overall metrics such as Brier score.
 
@@ -567,7 +566,7 @@ ggplot(Predict(f2, age, gender, class,
        colorscale = function(...) scale_color_manual(values = c("blue", "orange")))
 ```
 
-However, this code of conduct is not respected among third class passengers, where we see two abnormal trends. Firstly, people in their prime have higher predicted survival possibility. The survival curve displays an inverted U-shape, where people aged around  for both men and women. Secondly, the gender gap also narrowed, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
+However, this code of conduct is not respected as much among third class passengers, where we see two abnormal trends. Firstly, people in their prime have higher predicted survival possibility. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive for both men and women. Secondly, the gender gap also narrowed, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
 
 
 
