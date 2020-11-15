@@ -102,9 +102,9 @@ tribble(
 ```
 
 
-After appropriate formatting and cleaning, the data at hand recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. 
+After appropriate formatting and cleaning, the data underlying the whole analysis recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. 
 
-It is essential for every fruitful task of data analysis to first identify key questions of investigation that facilitates interpretation, however vague they are at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes, we could establish the following research questions. 
+It is essential for every fruitful data analysis to first identify key questions of investigation that facilitates exploration and interpretation, however vague at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes and building on many outstanding works of study [-@frey2009surviving;-@gleicher2004survived;-@symanzikunsinkable], we could establish the following research questions. 
 
 *Question 1*: To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
 
@@ -112,11 +112,10 @@ It is essential for every fruitful task of data analysis to first identify key q
 
 *Question 3*: What is the crew member's position in the rescue effort? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to see if self interest dominates in the life-and-death situation and crew tend to look out for themselves. 
 
-*Question 4*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
+*Question 4*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions could be in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. Parental investment suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
 
 *Question 5*: Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
 
-- Quantify interactions among various characteristics. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
 
 This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
@@ -239,7 +238,7 @@ p3 <- ggplot(t, aes(age, survived, color = class)) +
 
 The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If a loess curve exhibits a reasonable degree of nonmonotonicity, it will often pay to not assume linearity, e.g., modeling the predictor with polynomial transformation or with splines. 
 
-It was widely documented that gender interacts directly with age, in other words, age effects for men and women are most likely to be nonparallel in the logit scale. Another important interaction, according to many follow up studies, happened with cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under certain stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. Despite that the loess estimation here would by no means serve as a strict inference-oriented model, and we only include 3 factors at this point, it inspires a treatment of these effects that is more thorough and cautious. 
+It was widely documented that gender interacts directly with age, in other words, age effects for men and women are most likely to be nonparallel in the logit scale. Another prominant joint effects, according to many follow up studies, happened between age and cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under certain stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. Despite that the loess estimation here would by no means serve as a strict inference-oriented model, and we only include 3 factors at this point, it inspires a treatment of these effects that is more thorough and cautious. 
 
 
 
@@ -462,7 +461,6 @@ f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
  \end{longtable}
  \addtocounter{table}{-1}
 
-
 \normalsize
 
 
@@ -556,7 +554,7 @@ Women and children are evacuated first in general, supported both by data and st
 second class, third class, or sixty-seventh class. It was all the
 same; women and children were first
 
-A closer look at numbers may suggest another story. We observe that first class passengers have the highest predicted survival possibility in general, whereas the third class is the lowest. The chasm between classes is most manifest in middle-aged women. A 30-year-old first class women is likely to survive with a probability between (`label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)`, `Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper`), and if she were in the third class, (`label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)`, `Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper`). 
+A closer look at numbers may suggest another story. We observe that first class passengers have the highest predicted survival possibility in general, whereas the third class is the lowest. The chasm between classes is most manifest in adult women. A 30-year-old first class women is likely to survive with a probability between (`r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)`, `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper)`), and if she were in the third class, (`r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)`, `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper)`). 
 
 Interestingly, the crew out of four roles share a similar survival trend with first class passengers.
 
