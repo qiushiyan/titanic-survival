@@ -10,7 +10,7 @@ affiliation:
     address: |
       Beijing, China
 abstract: |
-   This case study showcases the development of a binary logistic model to predict the possibility of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap internal validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained, touching on key issues such as the choice of a statistical model or a machine learning model, using bootstrap to alleviate selection bias, disadvantages of the holdout sample approach in validation, and more. This analysis is fully reproducible with all source R code and text. 
+   This case study showcases the development of a binary logistic model to predict the probability of survival in the loss of Titanic. I demonstrate the overall modeling process, including preprocessing, exploratory analysis,  model fitting, adjustment, bootstrap internal validation and interpretation as well as other relevant techniques such as redundancy analysis and multiple imputation for missing data. The motivation and justification behind critical statistical decisions are explained, touching on key issues such as the choice of a statistical model or a machine learning model, using bootstrap to alleviate selection bias, disadvantages of the holdout sample approach in validation, and more. This analysis is fully reproducible with all source R code and text. 
 bibliography: references.bib
 link-citations: true
 geometry: "margin=1in"
@@ -33,13 +33,6 @@ Who Survived Titanic? A Logistic Regression Analysis: https://sci-hub.do/https:/
 
 
 https://www.insider.com/titanic-secrets-facts-2018-4#at-the-memorial-of-frederick-fleet-one-of-the-lookouts-a-prankster-left-a-pair-of-binoculars-with-a-note-reading-sorry-for-bringing-these-100-years-too-late-8
-
-
-http://rpubs.com/edwardcooper/titanic1
-
-https://www.kaggle.com/mrisdal/exploring-survival-on-the-titanic/report
-
-https://www.kaggle.com/startupsci/titanic-data-science-solutions/comments
 
 https://www.newscientist.com/article/dn22119-sinking-the-titanic-women-and-children-first-myth/
 
@@ -117,9 +110,11 @@ It is essential for every fruitful task of data analysis to first identify key q
 
 *Question 2*: Did socio-economic advantages mean better chance of survival? If this is the case, passengers with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people. Cabin class's impact on survival status needs special notice here. 
 
-*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival possibility greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
+*Question 3*: What is the crew member's position in the rescue effort? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to see if self interest dominates in the life-and-death situation and crew tend to look out for themselves. 
 
-*Question 4*: Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
+*Question 4*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? On one hand, they are more likely to be in shortage of psychological and physical support. On the other hand, they would may be able to reach a life-saving decision faster without transaction cost and negotiation.  
+
+*Question 5*: Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
 
 - Quantify interactions among various characteristics. Specifically, there are important interactions that need extra notice. For example, it has been widely studied in sociology and anthropology that human are sometimes driven by *procreation instinct* so that social norms would entail needs to protect females of reproductive age [@frey2009surviving].^[The average peak reproductive period in females is between the ages of 16 and 35.] Therefore, we could specify and study the interaction between age and gender. Another typical interaction is between offspring and gender. *Parental investment* suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves.  
 
@@ -208,7 +203,7 @@ plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 
 The plot reveals appreciably strong effects of gender and cabin class on survival status. The effect of age seems trivial except for the missing subjects, but again, this figure exposes only linear relationship, and only after categorization. As we will see in the next section, age effect are much nonlinear and concentrated in the young subjects. The downside of this kind of univariate relationship is also exemplified in `title`, where "Miss". For the same reason effects of other variables cannot be determined. 
 
-We will finish with a redundancy analysis to study if any predictor can be readily explained by the rest of predictors, therefore does not much bring new information and may not enter the model. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then use OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
+We finish with a redundancy analysis to study if data reduction of removing unnecessary predictors is possible. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then use OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
 
 ```{r, comment = ""}
 redun(~ age  + gender + class +  nationality + title + spouse +
@@ -546,17 +541,28 @@ To sum up, the model presents reasonable discrimination power and satisfactory q
 
 # Interpretation and discussion {#interpretation}
 
-With non-monotonic relations and interactions involved, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category. 
-
-
-
+With non-monotonic relations and interactions involved, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category. We observed that first class passengers 
 
 
 (ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class while other predictors held constant at parent $= 0$, children $= 0$, nationality $=$ English, and port $=$ Southampton. Shaded region shows 95% confidence interval. 
 
-Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. This can be used to address question 1 and 2, where we need to inspect all these three variables' influence on survival status. We want to know if women, youth and higher class results in greater chance to survive. First note that the confidence interval is extremely wide for young first class passengers, and for the crew whose age is not in the middle. Thus we tend to only interpret their age effects where the prediction is less variable.  
+Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. 
 
-Women and children are evacuated first in general, supported both by data and stories. `r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))` of the women and `r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))` of the children (age under 12) were saved, but only `r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))` of the men. There was also recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away". 
+We could now address question 1, 2 and 3 with figure \@ref(fig:partial-age-sex-cabin), where we need to inspect all these three variables' influence on survival status. We want to know if women, youth and higher class results in greater chance to survive. First note that the confidence interval is extremely wide for young first class passengers, and for the crew whose age is not in the middle. Thus we tend to only interpret their age effects where the prediction is less variable.  
+
+Women and children are evacuated first in general, supported both by data and stories. `r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))` of the women and `r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))` of the children (age under 12) were saved, but only `r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))` of the men. There was also recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away".  Fifth Officer Harold Lowe exposited the policy in the American Inquiry as 
+
+> It was simply the first woman, whether first class,
+second class, third class, or sixty-seventh class. It was all the
+same; women and children were first
+
+A closer look at numbers may suggest another story. We observe that first class passengers have the highest predicted survival possibility in general, whereas the third class is the lowest. The chasm between classes is most manifest in middle-aged women. A 30-year-old first class women is likely to survive with a probability between (`label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)`, `Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper`), and if she were in the third class, (`label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)`, `Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper`). 
+
+Interestingly, the crew out of four roles share a similar survival trend with first class passengers.
+
+
+. The first class are the group of people that survive the most in percentages. And Since they have roughly similar prediction intervals especially in the middle age range, there is not much evidence to argue who is saved first. In fact, there might even be a slight advantage for the middle-aged over the elderly (note the confidence starts to get wider in the end).  The most decisive explanation for such effect is that first-class passengers had better access to information about the
+imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers had no idea where the lifeboats were located (safety drills for all passengers were introduced after the Titanic disaster), and they did not know how to reach the upper decks where the lifeboats were stowed.  
 
 
 ```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)"}
@@ -566,7 +572,7 @@ ggplot(Predict(f2, age, gender, class,
        colorscale = function(...) scale_color_manual(values = c("blue", "orange")))
 ```
 
-However, this code of conduct is not respected as much among third class passengers, where we see two abnormal trends. Firstly, people in their prime have higher predicted survival possibility. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive for both men and women. Secondly, the gender gap also narrowed, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
+Next, we will focus on the third class, where this code of conduct is not respected as much. There are we see two abnormal trends. Firstly, people in their prime have higher predicted survival probability. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive, for both men and women. Secondly, the gender gap in survival probability narrowed drastically for third class, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
 
 
 
@@ -582,12 +588,9 @@ Since the crew's instructions (in English) tended to be along the lines of "Wait
 
 
 
-The most decisive explanation for such effect is that first-class passengers had better access to information about the
-imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers had no idea where the lifeboats were located (safety drills for all passengers were introduced after the Titanic disaster), and they did not know how to reach the upper decks where the lifeboats were stowed.  
 
-Wyn Craig Wade: there was a class culture on Titanic akin to the notion of a "culture of poverty
 
-> Undoubtedly, the worst barriers were the ones within the steerage passengers themselves. Years of conditioning as third-class citizens led a great many of them to give up hope as soon as the crisis became evident ... Barriers to steerage? Yes, but of a kind less indictable to the White Star Line than to the whole of civilization.
+
 
 
 
