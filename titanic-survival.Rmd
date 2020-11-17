@@ -25,16 +25,8 @@ output:
     extra_dependencies:
       sourcecodepro:
        - scale=0.85
+      float: null
 ---
-
-http://www.crema-research.ch/papers/2009-03.pdf
-
-Who Survived Titanic? A Logistic Regression Analysis: https://sci-hub.do/https://journals.sagepub.com/doi/pdf/10.1177/084387140401600205
-
-
-https://www.insider.com/titanic-secrets-facts-2018-4#at-the-memorial-of-frederick-fleet-one-of-the-lookouts-a-prankster-left-a-pair-of-binoculars-with-a-note-reading-sorry-for-bringing-these-100-years-too-late-8
-
-https://www.newscientist.com/article/dn22119-sinking-the-titanic-women-and-children-first-myth/
 
 ```{r, include = FALSE}
 # global chunk options 
@@ -88,7 +80,7 @@ tribble(
   "age", "age", "In years, some infants had fractional values",
   "gender", "gender", "",
   "joined", "port of embarkation", "Belfast, Cherbourg, Queenstown, Southampton", 
-  "class", "cabin class", "1st, 2nd, 3rd or Crew",
+  "class", "", "1st, 2nd, 3rd or crew",
   "nationality", "motherland", "from wiki passenger list",
   "title", "title", "Extracted from name",
   "spouse", "\\# of spouse on board", "",
@@ -107,15 +99,15 @@ After appropriate formatting and cleaning, the data underlying the whole analysi
 
 It is essential for every fruitful data analysis to first identify key questions of investigation that facilitates exploration and interpretation, however vague at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes and building on many outstanding works of study [-@gleicher2004survived;-@frey2009surviving;-@symanzikunsinkable], we establish the following research questions. 
 
-*Question 1*: To which degree is *Women and children first* policy respected? After the collision, the captain explicitly issued an order for women and children to be saved first.^[Though there is no international maritime law enforcing this kind of chivalry.] Thus we should expect significantly higher proportion of females and children rescued than that in males and adults. If the opposite is true, that Titanic subjects behave more in line with the selfish *homo oeconomicus*, where everybody looked out for himself or herself and possibly even puts other people’s lives in danger, then people in their prime with physical superiority would see higher probability of survival. This requires us to study gender and age effect. 
+*Question 1*: To which degree is the *women and children first* policy respected? The obvious fact is that significantly higher proportion of females (`r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))`) and children (`r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))`) rescued than that in males (`r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))`) and adults (`r label_percent(0.1)(mean(subset(t, age > 12)$survived == 1))`). The key question lies in identifying possible factors that might intervene this process. For example, a first class adult male may possess the socio-economic advantage or financial means to get lifeboat access unfairly from the deck crew. The policy can be disrupted in other ways: some Titanic subjects could behave more in line with the selfish *homo oeconomicus*, then people (especially male) in their prime with physical superiority would see higher probability of survival. 
 
-*Question 2*: Did socio-economic advantages mean better chance of survival? If this is the case, passengers with higher financial means, i.e. who live in the first class are more likely to survive. Similarly,  passengers from second class will have a higher change of survival than third class people. Cabin class's impact on survival status needs special notice here. 
 
-*Question 3*: What is the crew member's position in the rescue effort? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to see if self interest dominates in the life-and-death situation and crew tend to look out for themselves. 
 
-*Question 4*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions could be in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. Parental investment suggest that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
+*Question 2*: What is the crew member's position in the rescue effort? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location of the lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to know whether self interest dominates in the life-and-death situation and crew tend to look out for themselves. 
 
-*Question 5*: Did English subjects receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers. Conversely, British nobility and elite 
+*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions could be in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. The theory of parental investment suggests that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
+
+*Question 4*: Did English passengers receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers that might give preference to compatriots. 
 
 
 
@@ -173,7 +165,7 @@ We see in figure \@ref(fig:na-tree) that survival status, gender and class are e
 Back to other variables in descriptive statistics. Distributions of subject's companion on Titanic are all too narrow, as illustrated in figure \@ref(fig:skew-rel). There is too little variation to model them continuously. This motivates categorization since we will not lose too much information. Lastly, nearly half of the subjects are English. And if we focus on crew, the number rise to 85%. 
 
 
-```{r skew-rel, fig.cap = "(ref:skew-rel)", fig.height = 3.5, fig.width = 5}
+```{r skew-rel, fig.cap = "(ref:skew-rel)", fig.height = 3, fig.width = 5}
 t %>%
   tidyr::pivot_longer(8:11, names_to = "relation", values_to = "n") %>%
   ggplot() + 
@@ -203,7 +195,7 @@ plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 
 The plot reveals appreciably strong effects of gender and cabin class on survival status. Age effects seem trivial except for the subjects with missing entry, but again, the downside of such kind of univariate display is that it force the audience to think linearly, and only after categorization.  For the same reason effects of other variables cannot be determined. 
 
-We finish with a redundancy analysis to study if data reduction of removing unnecessary predictors is possible. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then use OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
+We finish with a redundancy analysis to study if data reduction of removing unnecessary predictors is possible. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then uses OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
 
 ```{r, comment = ""}
 redun(~ age  + gender + class +  nationality + title + spouse +
@@ -255,27 +247,27 @@ It was widely documented that gender interacts directly with age, in other words
 
 A typical modeling workflow begins with an choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism and assumes additivity, whereas machine learning models is algorithmatic in nature, optimized with parameter tuning. We choose to develop a statistical model, a "simple" binary logistic regression, for the following reasons. 
 
-We prefer probabilistic predictions to classification with output label 0 and 1, since we are placing emphasis upon the *tendency* of survival. And the value of the model consist not in a dichotomous prediction, but in what characteristics would increase or decrease the possibility of survival. The notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
+We prefer probabilistic predictions to classification with output label 0 and 1, for the emphasis placed upon the *tendency* of survival. And the value of the model consist not in a dichotomous prediction, but in what characteristics would increase or decrease the probability of survival. The notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
 
-Interpretability and inference matters. Many top data science competitions has reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, whereas interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
+Interpretability and inference matters. Many top data science competitions has reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, yet interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
 
-Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. To guard against overfitting, the analyst has to have a sample size that is 10 times larger at least if he chooses a tree model instead of regression. While this case study uses a Titanic dataset that is about 1/3 larger than those only concerned with passengers, it is far less sufficient for a typical data-hungry machine learning model to validate well. The rationale is that a statistical model is a safer approach as Dr. Harrell commented
+Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. To guard against overfitting, the analyst has to have a sample size that is 10 times larger at least if he chooses a tree model instead of regression. While this case study uses a Titanic dataset that is about 1/3 larger than those only concerned with passengers, it is far less sufficient for a typical data-hungry machine learning model to validate well. The rationale is that a statistical model is a safter approach that can do without big data,  as Dr. Harrell commented
 
-> If n is too small to do something simple, it is too small to do something complex
+> If n is too small to do something simple, it is too small to do something complex. 
 
 
 ## Specification {#spec}
 
-We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. This strategy as a starting point is also called prespecification of predictor complexity. It avoids creating phantom degrees of freedom when one has subjective judgment according to scatter diagrams or descriptive statistics on how to represent variables in a model. Commonly done, for example, is excluding a quadratic term simply because it is "non-significant", with p-value on the edge of $0.05$. This approach is known to distort coefficient estimates, confidence intervals, p-value  and calibration (too optimistic) of the final model [@grambsch1991effects].^[confidence interval too narrow, p-value and standard errors too small and calibration too optimistic] Because it fails to accounts for sampling variability and suffers selection bias. Therefore, it is essential to have extra caution, as demonstrated below using resampling, to do model simplification. 
+We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. This strategy as a starting point is also called prespecification of predictor complexity. It avoids creating phantom degrees of freedom when one has subjective judgment according to scatter diagrams or descriptive statistics on how to represent variables in a model. Commonly done, for example, is excluding a quadratic term simply because it is "non-significant", with p-value on the edge of $0.05$. This approach is known to distort coefficient estimates, confidence intervals, p-value  and calibration (too optimistic) of the final model,  because it fails to accounts for sampling variability and suffers selection bias.[@grambsch1991effects]^[confidence interval too narrow, p-value and standard errors too small and calibration too optimistic] Therefore, it is essential to have extra caution, as demonstrated below using resampling, to do model simplification. 
 
-Prespecification of predictor complexity is done first by developing a saturated logistic model and then making necessary adjustments and improvements. In this model, we granted age effect maximal flexibility represented as natural splines with 5 knots, and all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. Since this is an initial model, observations with missing age are not used. The model equation is 
+Prespecification of predictor complexity is done first by developing a saturated logistic model and then making necessary adjustments and improvements. In this model, we granted age effect maximal flexibility represented as natural splines with 5 knots, and all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. Since this is an initial model, observations with missing age are not used. The model equation is ^[`rcs(x, n)` means "represent predictor x using natural splines with n knots". Knots are placed on evenly space percentiles by default.]
 
 ```{r}
 dd <- datadist(t)
 options(datadist = "dd")
 f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
-            (rcs(age, 5) * parent) +  
-            spouse + sibling + children + 
+            (rcs(age, 5) * parent) + (gender * children) + 
+            spouse + sibling + 
             joined + nationality,
           data = t, x = TRUE, y = TRUE)
 ```
@@ -284,12 +276,12 @@ f1 <- lrm(survived ~ (rcs(age, 5) + gender + class)^2 +
 
 
 
-(ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
+
 
 
 ```r
 survived ~ (rcs(age, 5) + gender + class)^2 + (rcs(age, 5) * parent) + 
-            joined + spouse + sibling + children + nationality 
+            gender * children + joined + spouse + sibling + nationality 
 ```
 
 ```{r, results="asis"}
@@ -298,12 +290,14 @@ mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothe
 
 
 
-```{r fone-anova-plot, fig.cap = "(ref:fone-anova-plot)"}
-plot(anova(f1))
-```
 
 
 Table \@ref(fone-anova) selects specific hypothesis to test for general power, linearity and additivity assumptions of individual predictors, as well as their "chunky" version of global effects. We see dominant main effects of gender, age and cabin class, be it linear or nonlinear ($p < 0.0001$) More notably are the strong nonlinear interaction terms between the three. Of all four companion variables only parent manifests clear predictive ability. The impact of embarkation point is somewhat ambiguous ($p = 0.14$). As a graphical illustration, figure \@ref(fig:fone-anova-plot) plots "adjusted" partial $\chi^2$ statistic of each predictor in the saturated model, with correction for degrees of freedom allocated to them.^[The correction is done by subtracting the d.f. from the partial $\chi^2$ statistic, its expected value under the null hypothesis.] This adjustment levels the playing field for comparison of predictive ability. The larger the adjusted $\chi^2$, the more likely a variable would have a non-flat impact on survival status.  
+
+```{r fone-anova-plot, fig.cap = "(ref:fone-anova-plot)", fig.pos = "h", out.extra=""}
+plot(anova(f1))
+```
+(ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
 
 ```{r, include = FALSE, cache = TRUE}
 set.seed(2021)
@@ -315,7 +309,7 @@ v1 <- validate(f1, B = 500, bw = TRUE)
 ```{r, cache = TRUE, include = FALSE}
 n <- nrow(t)
 B <- 500
-ranks <- matrix(NA, nrow = B, ncol = 13)
+ranks <- matrix(NA, nrow = B, ncol = 14)
 rank_vars <- function(fit) {
   rank(plot(anova(fit), sort = "none", pl = FALSE))
 }
@@ -359,9 +353,7 @@ ranks %>%
 As mentioned before, the goal of the saturated model is guiding model complexity. More specifically, should we allocate more degrees of freedom to a certain term because some complex effects has been underrepresented? Or is there a term that is highly irrelevant thus could be deleted? The polynomial transformation on age and the resulting nonlinear interaction carry substantial statistical power, while further increasing knots or creating high-order interactions causes numerical problems. Therefore, it is positive advantage to us to keep them as is. There are also not sufficient reasons to collapse levels for nationality and port.  Binary variables like spouse and sibling have extremely large p-values ($p > 0.5$), indicating relatively small predictive power. Still,  great care should be taken when one attempts to conduct aggressive model simplification based on hypothesis testing and p-values. A reliable way is using bootstrap resampling. Figure \@ref(fig:predictor-ranking) studies the importance of all terms including main effects and interaction over 500 bootstrap resamples. In each resample, we fit the saturated model, rank all 13 terms by the adjusted statistic $\chi^2 - \text{d.f.}$ in ascending order so that 13 is most important and 1 is least important. The height of a bar indicates the number of times a term is ranked at that position. 
 
 
-
-
-The importance ranking echoes previous findings that gender, age and cabin class are predominant factors. It also reveals great variability in terms of assessing predictive power. For example, we are only confident that `joined` is not one of the 5 most influential predictors. Nonetheless, rankings of the aforementioned "weak" variables, sibling and spouse, are highly concentrated at 1 to 3.  In fact, if we perform backward selection in nearly 500 bootstrap resamples with AIC as stopping rule, none of the 3 binary variables entered the selected model more than 20 times. This results in the final decision to remove them in the final model. 
+The importance ranking echoes previous findings that gender, age and classes are predominant factors. It also reveals great variability in terms of assessing predictive power. For example, we are only confident that `joined` is not one of the 5 most influential predictors. Nonetheless, rankings of the aforementioned "weak" variables, sibling and spouse, are highly concentrated at 1 to 3.  In fact, if we perform backward selection in nearly 500 bootstrap resamples with AIC as stopping rule, none of the 3 binary variables entered the selected model more than 20 times. This results in the final decision to remove them in the final model. 
 
 ```{r, echo = TRUE}
 t$sibling <- NULL
@@ -398,74 +390,35 @@ We use predictive mean matching with $m = 30$, since approximately 30% of age is
 
 ## Model fitting, validation and calibration {#fit}
 
-We now fit the final logistic model across 30 complete dataset. Pooled estimates are obtained by averaging over all pieces. We also get an imputation-corrected variance–covariance matrix based on within– and between–imputation variances. Individual estimates are listed below. 
+We now fit the final logistic model across 30 complete dataset. Pooled estimates are obtained by averaging over all pieces. We also get an imputation-corrected variance–covariance matrix based on within– and between–imputation variances. The long table of Individual estimates are in the [appendix](#formula). 
 ```{r, include = FALSE, cache = TRUE}
 f2 <- fit.mult.impute(survived ~ (rcs(age, 5) + gender + class)^2 +
-            rcs(age, 5) * parent + children + nationality + joined,
+            rcs(age, 5) * parent + gender * children + nationality + joined,
             fitter = lrm, 
             imp, 
             data = t)
 ```
 
 
-\small
-\setlongtables\begin{longtable}{lrrrr}
+The model exhibits moderate discrimination power, e.g. the ability to separate perished and survived subjects (concordance probability $=$ area under the ROC curve $\approx 0.81$).  Brier score, as a proper quadratic scoring rule that incorporate both aspects, is a promising $0.144$. 
+
+
+<!-- Produced as part of print(f2) -->
+
+
+\begin{center}\small
+\begin{tabular}{|c|c|c|c|}\hline
+&Model Likelihood&Discrimination&Rank Discrim.\\
+&Ratio Test&Indexes&Indexes\\\hline
+Obs~\hfill 2208&LR $\chi^{2}$~\hfill 787.09&$R^{2}$~\hfill 0.419&$C$~\hfill 0.814\\
+~~0~\hfill 1496&d.f.~\hfill 43&$g$~\hfill 1.789&$D_{xy}$~\hfill 0.627\\
+~~1~\hfill 712&Pr$(>\chi^{2})$~\hfill \textless 0.0001&$g_{r}$~\hfill 5.993&$\gamma$~\hfill 0.629\\
+$\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.02&&$g_{p}$~\hfill 0.274&$\tau_{a}$~\hfill 0.274\\
+&&Brier~\hfill 0.144&\\
 \hline
-\multicolumn{1}{l}{}&\multicolumn{1}{c}{$\hat{\beta}$}&\multicolumn{1}{c}{S.E.}&\multicolumn{1}{c}{Wald $Z$}&\multicolumn{1}{c}{Pr$(>|Z|)$}\tabularnewline
- \hline
- \endhead
- \hline
- \endfoot
- Intercept&~ -0.1475~&~ 1.9879~&-0.07&0.9409\tabularnewline
- age&~  0.2225~&~ 0.1244~& 1.79&0.0737\tabularnewline
- age'&~ -0.9850~&~ 0.6877~&-1.43&0.1520\tabularnewline
- age''&~  4.4844~&~ 3.6008~& 1.25&0.2130\tabularnewline
- age'''&~ -5.5980~&~ 4.9656~&-1.13&0.2596\tabularnewline
- gender=Male&~ -1.8842~&~ 1.0197~&-1.85&0.0646\tabularnewline
- class=2nd&~  5.4575~&~ 2.8123~& 1.94&0.0523\tabularnewline
- class=3rd&~ -1.0535~&~ 1.8583~&-0.57&0.5708\tabularnewline
- class=crew&~ -2.4149~&~ 3.2651~&-0.74&0.4595\tabularnewline
- parent=1&~  3.4640~&~ 1.2035~& 2.88&0.0040\tabularnewline
- nationality=English&~  0.0730~&~ 0.2757~& 0.26&0.7912\tabularnewline
- nationality=Finnish&~  0.1843~&~ 0.4289~& 0.43&0.6674\tabularnewline
- nationality=Irish&~  0.0116~&~ 0.3901~& 0.03&0.9763\tabularnewline
- nationality=Other&~ -0.2328~&~ 0.2669~&-0.87&0.3832\tabularnewline
- nationality=Swedish&~ -0.2673~&~ 0.3820~&-0.70&0.4840\tabularnewline
- nationality=Syrian&~ -0.0582~&~ 0.4429~&-0.13&0.8955\tabularnewline
- joined=Cherbourg&~  0.6565~&~ 0.3321~& 1.98&0.0480\tabularnewline
- joined=Queenstown&~  0.0538~&~ 0.4133~& 0.13&0.8965\tabularnewline
- joined=Southampton&~ -0.0632~&~ 0.2003~&-0.32&0.7523\tabularnewline
- age $\times$ gender=Male&~ -0.1498~&~ 0.0573~&-2.61&0.0090\tabularnewline
- age' $\times$ gender=Male&~  0.8213~&~ 0.3849~& 2.13&0.0329\tabularnewline
- age'' $\times$ gender=Male&~ -3.9560~&~ 2.3149~&-1.71&0.0875\tabularnewline
- age''' $\times$ gender=Male&~  4.8271~&~ 3.5665~& 1.35&0.1759\tabularnewline
- age $\times$ class=2nd&~ -0.3846~&~ 0.1754~&-2.19&0.0283\tabularnewline
- age' $\times$ class=2nd&~  1.4771~&~ 0.8999~& 1.64&0.1007\tabularnewline
- age'' $\times$ class=2nd&~ -6.7250~&~ 4.5517~&-1.48&0.1395\tabularnewline
- age''' $\times$ class=2nd&~  8.5082~&~ 6.1731~& 1.38&0.1681\tabularnewline
- age $\times$ class=3rd&~ -0.1403~&~ 0.1159~&-1.21&0.2262\tabularnewline
- age' $\times$ class=3rd&~  0.7699~&~ 0.6331~& 1.22&0.2240\tabularnewline
- age'' $\times$ class=3rd&~ -4.9212~&~ 3.2961~&-1.49&0.1354\tabularnewline
- age''' $\times$ class=3rd&~  7.7752~&~ 4.5292~& 1.72&0.0860\tabularnewline
- age $\times$ class=crew&~  0.0589~&~ 0.1890~& 0.31&0.7554\tabularnewline
- age' $\times$ class=crew&~ -0.0468~&~ 0.8023~&-0.06&0.9535\tabularnewline
- age'' $\times$ class=crew&~ -0.5748~&~ 3.6057~&-0.16&0.8733\tabularnewline
- age''' $\times$ class=crew&~  1.5477~&~ 4.4606~& 0.35&0.7286\tabularnewline
- gender=Male $\times$ class=2nd&~ -0.4060~&~ 0.7087~&-0.57&0.5667\tabularnewline
- gender=Male $\times$ class=3rd&~  2.1475~&~ 0.6288~& 3.41&0.0006\tabularnewline
- gender=Male $\times$ class=crew&~  0.5495~&~ 0.8726~& 0.63&0.5289\tabularnewline
- age $\times$ parent=1&~ -0.1190~&~ 0.1118~&-1.06&0.2871\tabularnewline
- age' $\times$ parent=1&~ -0.6885~&~ 1.1693~&-0.59&0.5560\tabularnewline
- age'' $\times$ parent=1&~ 10.4417~&~11.6224~& 0.90&0.3690\tabularnewline
- age''' $\times$ parent=1&~-29.7852~&~35.4739~&-0.84&0.4011\tabularnewline
- \hline
- \end{longtable}
- \addtocounter{table}{-1}
+\end{tabular}
+\end{center}
 
-\normalsize
-
-
-Table \@ref(ftwo-anova) again constructs meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreased by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development. Table \@ref(model-index) prints model assessment metrics and details individual parameters. The model exhibits moderate discrimination power, e.g. the ability to separate perished and survived subjects (concordance probability $=$ area under the ROC curve $\approx 0.81$).  Brier score, as a proper quadratic scoring rule that incorporate both aspects, is a promising $0.144$. 
 
 
 ```{r, results = "asis"}
@@ -475,22 +428,7 @@ mylatex(anova(f2), file = "", size = "small", table.env = TRUE, label = "ftwo-an
 
 
 
-\begin{table}[h]
-\caption{Model index and estimation\label{model-index}} 
-\begin{center}\small
-\begin{tabular}{|c|c|c|c|}
-\hline
-&Model Likelihood&Discrimination&Rank Discrim.\\
-&Ratio Test&Indexes&Indexes\\\hline
-Obs~\hfill 2208&LR $\chi^{2}$~\hfill 783.83&$R^{2}$~\hfill 0.418&$C$~\hfill 0.813\\
-~~0~\hfill 1496&d.f.~\hfill 41&$g$~\hfill 1.799&$D_{xy}$~\hfill 0.626\\
-~~1~\hfill 712&Pr$(>\chi^{2})$~\hfill \textless 0.0001&$g_{r}$~\hfill 6.053&$\gamma$~\hfill 0.628\\
-$\max|\frac{\partial\log L}{\partial \beta}|$~\hfill 0.007&&$g_{p}$~\hfill 0.274&$\tau_{a}$~\hfill 0.274\\
-&&Brier~\hfill 0.144&\\
-\hline
-\end{tabular}
-\end{center}
-\end{table}
+Table \@ref(ftwo-anova) again constructs meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreased by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development.
 
 
 ```{r, include = FALSE, cache = TRUE}
@@ -498,7 +436,9 @@ f2 <- update(f2, x = TRUE, y = TRUE)
 v2 <- validate(f2, B = 500, method = ".632")
 ```
 
-```{r, results = "asis"}
+```{r, results = "asis", eval = FALSE}
+# not evaluated for formatting issues
+# produce the following table
 mylatex(v2, file = "", size = "small", table.env = TRUE,
         label = "model-val", caption = "Optimism-corrected metrics", where = "h")
 ```
@@ -506,12 +446,32 @@ mylatex(v2, file = "", size = "small", table.env = TRUE,
 
 
 
+\begin{table}[h]
+\caption{Optimism-corrected metrics\label{model-val}} 
+\begin{center}\small
+\begin{tabular}{lrrrrrr}
+\hline\hline
+\multicolumn{1}{l}{Index}&\multicolumn{1}{c}{Original}&\multicolumn{1}{c}{Training}&\multicolumn{1}{c}{Test}&\multicolumn{1}{c}{Optimism}&\multicolumn{1}{c}{Corrected}&\multicolumn{1}{c}{$n$}\tabularnewline
+&\multicolumn{1}{c}{{\small Sample}}&\multicolumn{1}{c}{{\small Sample}}&\multicolumn{1}{c}{{\small Sample}}&&\multicolumn{1}{c}{{\small Index}}&\tabularnewline
+\hline
+$D_{xy}$&$ 0.6253$&$ 0.6416$&$ 0.5599$&$ 0.0413$&$ 0.5840$&$489$\tabularnewline
+$R^{2}$&$ 0.4190$&$ 0.4374$&$ 0.3077$&$ 0.0703$&$ 0.3487$&$489$\tabularnewline
+Intercept&$ 0.0000$&$ 0.0000$&$-0.2598$&$ 0.1642$&$-0.1642$&$489$\tabularnewline
+Slope&$ 1.0000$&$ 1.0000$&$ 0.6726$&$ 0.2069$&$ 0.7931$&$489$\tabularnewline
+$E_{\max}$&$ 0.0000$&$ 0.0000$&$ 0.0819$&$ 0.0819$&$ 0.0819$&$489$\tabularnewline
+$D$&$ 0.3560$&$ 0.3753$&$ 0.2526$&$ 0.0653$&$ 0.2907$&$489$\tabularnewline
+$U$&$-0.0009$&$-0.0009$&$    Inf$&$   -Inf$&$    Inf$&$489$\tabularnewline
+$Q$&$ 0.3569$&$ 0.3762$&$   -Inf$&$    Inf$&$   -Inf$&$489$\tabularnewline
+$B$&$ 0.1435$&$ 0.1407$&$ 0.1496$&$-0.0039$&$ 0.1474$&$489$\tabularnewline
+$g$&$ 1.7895$&$ 2.0282$&$ 1.3646$&$ 0.2685$&$ 1.5210$&$489$\tabularnewline
+$g_{p}$&$ 0.2742$&$ 0.2812$&$ 0.2164$&$ 0.0365$&$ 0.2376$&$489$\tabularnewline
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
 Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presented unbiased, optimism-corrected measures. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
-
-
-
-As an improved alternative, we choose Efron's 0.632 method for bootstrap internal validation. In each of the 494 bootstrap resamples, a logistic model is developed and evaluated on observations omitted from bootstrap samples. Per-bootstrap optimism is then the apparent index of accuracy subtracting that in the test sample formed by omitted observations. An weighted average $\hat{\varepsilon}_0$ over all 494 bootstrap resamples is computed to estimate the true optimism, while the bias-corrected
-estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is the a measure in how separated predictions are for survivors and victims. 
 
 ```{r, cache = TRUE, include = FALSE, eval = FALSE}
 cal <- calibrate(f2, B = 500)
@@ -522,20 +482,21 @@ cal <- calibrate(f2, B = 500)
 knitr::include_graphics("images/cal-curve.png")
 ```
 
+As an improved alternative, we choose Efron's 0.632 method for bootstrap internal validation. In each of the 494 bootstrap resamples, a logistic model is developed and evaluated on observations omitted from bootstrap samples. Per-bootstrap optimism is then the apparent index of accuracy subtracting that in the test sample formed by omitted observations. An weighted average $\hat{\varepsilon}_0$ over all 494 bootstrap resamples is computed to estimate the true optimism, while the bias-corrected
+estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is the a measure in how separated predictions are for survivors and victims. 
+
+
+
 (ref:cal-curve) Bias-corrected calibration curve from internal bootstrap validation. Predictions output by the final model are plotted against estimated actual probabilities with loess. Bars on the top indicates number of observations in the same prediction bin. The bias corrected line is close to the ideal 45 degree line
 
 The output does not deviate much from the apparent index. The validated area under the ROC curve as well as the concordance probability is now `r round((v2["Dxy", "index.corrected"]/2)+0.5, 2)`, and pseudo $R^2$ 0.35.  This indicates certain shortage of discrimination ability in comparison to some published models on the older dataset. $\text{Slope} = 0.8$ signals small amount of overfitting, with coefficients shrinking by 20% on new data.^[$D_{xy} = 2(\text{concordance proabability - 0.5})$]. Brier score is now near 0.15. 
 
 
 
-Discrimination index are often associated with rank correlations between predictions and response, thus may not be sensitive enough to evaluate their closeness. Figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration. The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-index). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in central region where there were few observations. The mean squared error is 0.00018, and the 0.9 quantile of absolute error
+Discrimination index are often associated with rank correlations between predictions and response, thus may not be sensitive enough to evaluate their closeness. Figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration. The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-val). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in central region where there were few observations. The mean squared error is 0.00018, and the 0.9 quantile of absolute error
 is 0.023. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflects strong calibration. 
 
 To sum up, the model presents reasonable discrimination power and satisfactory quality of fitting. Excellent performance in calibration lifts overall metrics such as Brier score.
-
-
-
-
 
 
 # Interpretation and discussion {#interpretation}
@@ -547,79 +508,88 @@ With non-monotonic relations and interactions involved, interpretations built up
 
 Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. 
 
-\hfill\break
-
-We could now address question 1, 2 and 3 with figure \@ref(fig:partial-age-sex-cabin), where we are inspecting all these three variables' influence on survival status. We want to know if women, youth, living in a higher class as passenger or being crew results in greater chance to survive.
-
-```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)"}
-ggplot(Predict(f2, age, gender, class, 
-               parent = 0, children = 0, nationality = "English", joined = "Southampton",
-               fun = plogis), legend.position = "none",
+```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)", fig.height = 3.5, fig.pos = "H", out.extra = ""}
+ggplot(Predict(f2, age, gender, class = c("1st", "2nd", "3rd"), 
+               fun = plogis), 
+       legend.position = "none",
+       adj.subtitle = FALSE, 
        colorscale = function(...) scale_color_manual(values = c("blue", "orange")))
 ```
 
-(ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class while holding other predictors constant at parent $= 0$, children $= 0$, nationality $=$ English, and port $=$ Southampton. Shaded region shows 95% confidence interval. 
+\hfill\break
 
-Women and children are evacuated first in general, supported both by data and stories. `r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))` of the women and `r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))` of the children (age under 12) were saved, but only `r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))` of the men. There was also recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away".  Fifth Officer Harold Lowe in the American Inquiry as reinforced this policy as one regardless of classes
+*Question 1*: Study the effects of the *women and children first policy*, with focus on gender, age and classes. 
+
+
+
+(ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class. The default control setting is parent $=$ 0, children $=$ 0, nationality $=$ English, and port $=$ Southampton. Shaded region shows 95% confidence interval. 
+
+Women and children are evacuated first on average, as mentioned before using total proportion. The model helps us bring into considerations possibly intervening factors that could distort the established order of lifeboat access.  There was recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away".  Fifth Officer Harold Lowe in the American Inquiry as reinforced this policy as one regardless of classes
 
 > It was simply the first woman, whether first class, second class, third class, or sixty-seventh class. It was all the same; women and children were first. 
  
-A closer look at numbers, particularly under stratification suggests another story. To begin with, not all classes of women and children receive the same level of help during the sinking, whether intended or unintended. We observe that first class passengers have the highest predicted survival possibility in general, whereas the third class is the lowest. The chasm between classes is most manifest in adult women. A 30-year-old first class women is likely to survive with a likelihood between (`r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)`, `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper)`), and if she were in the third class, (`r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)`, `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper)`). For children, knowing a 12-year-old comes from the first class increases the upper bound of predicted survival probability by nearly 30%. The most decisive explanation is that first-class passengers had better access to information about the
-imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers are located at the quarters down the stern, from which the designer deliberately made it difficult to reach the upper decks. 
+As we think not only in total numbers and the average,  particularly after taking a closer look at numbers under stratification, another story presents itself. To begin with, not all classes of women and children receive the same level of help during the sinking, whether intended or unintended. We observe that first class passengers have the highest predicted survival possibility in general, and the third class being the lowest. The chasm between classes is most manifest in adult women. A 30-year-old first class women is likely to survive with a likelihood between `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)` and `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper)`), and had she been in the third class, `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)` and `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper)`. For children, knowing a 12-year-old comes from the first class increases the upper bound of predicted survival probability by nearly 30%. The most decisive explanation is that first-class passengers had better access to information about the
+imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers were located at the quarters down the stern, from which the designer deliberately made it difficult to reach the upper decks. 
 
-Our second argument against "women and children first", is formed by digging into each of the 4 groups of people in figure \@ref(fig:partial-age-sex-cabin). We see that, even without class effects, this policy is in many cases not the truth. 
+While the first class is used to exemplify the uneven treatments of different classes, the policy was severely undermined within the third class after removing class effects. But let us first take the second class as a reference group, where the prediction roughly matches what should happen if children and women received the asserted assistance
+on the part of the authorities. The likelihood of survival for both gender starts approximately at the same higher region, then the probability for male plunged as he ages, while female only see a minor decrease after leaving the "girl" region. In the observations children are saved 100% (24 out of 24) and 88.7% of the women are rescued (94 out of 106). 
 
-The second class are chosen as a reference group, where the prediction roughly matches what should happen if children and women received the asserted assistance
-on the part of the authorities. The likelihood of survival for both gender starts approximately at the same higher region, then the probability for male plunged as he ages, while female only see a minor decrease after leaving the "girl" region.  
+The third class deviates from the reference group in two mains ways.  Firstly, people in their prime have higher predicted survival probability. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive, for both men and women. Secondly, the gender gap in survival probability narrowed drastically for third class. For example, being an 28-year-old man in the third class increases survival probability by 10% compared to the second class on average, whereas for a female age-mate the third class made her 33% more unlikely to survive. In addition, third class children had a slight 6% advantage in survival rates over adults, whereas in the other 3 groups, this disparity rose to 56%.
 
-The first class is the cohort that survive the most in percentages. Women have a mean survival advantage of 40% in terms of predicted probability. Yet there is not much evidence to argue children are saved first. Boys' survival percentage is only 2% higher than men between 20 and 40 (72% versus 70%), and their prediction interval is much wider. For girls, there might even be a slight advantage for adult female over the young. 
-
-The second class has a noteworthy male survival trend, 
+In summary, women and children first was only true on average, it was a not a class-blind effort, and third class women and children were faced with an extra harsh situation. 
 
 
-Next, we will focus on the third class, where this code of conduct is not respected as much. There are we see two abnormal trends. Firstly, people in their prime have higher predicted survival probability. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive, for both men and women. Secondly, the gender gap in survival probability narrowed drastically for third class, if someone is a third class miss or elderly woman, it is hard to conclude she has any priority in getting in the lifeboat over a man of similar age. For example, 
 
-Interestingly, the crew out of four roles share a similar survival trend with first class passengers.
+
+\hfill\break
+
+*Question 2*: 
+
+Crew members have a survivial pattern very skin to that of first class passengers, in both absolute value
+
+\hfill\break
+
+*Question 3*: 
+
+Having parents or children around could significantly increases the chance
+
+
+
+
+
+\hfill\break
+
+*Question 4*: Did British passengers gained survival advantage for some reason (e.g., activated national tie or simply because they can understand the instructions)?     
+
+Nationality is highly insignificant in the final model ($p = 0.58$). For the same class, people from different nations have almost identical survival pattern. (figure \@ref(fig:partial-nationality). One explanation, according to the titanica forum,  is that the crew's instructions in English tended to be along the lines of "Wait down here for further orders", and a lack of understanding might . Also many of the immigrants in third class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
+
+```{r partial-nationality, fig.cap = "Partial effects of nationality on predicted survival probability. ", fig.height = 3}
+ggplot(Predict(f2, nationality, fun = plogis, class = c("1st", "2nd", "3rd")),   
+       anova = anova(f2), size.anova = 3, adj.subtitle = FALSE) + 
+  labs(x = NULL)
+```
+
 
 \hfill\break
 
 
+Our last discovery concerns embarkation point. Passengers boarded at Cherbourg totaled 271, and had a surprisingly higher marginal survival rate of over 50%. The predicted survival probability is about 10% higher at Cherbourg than the average. The other two non-reference locations (Southampton and Queenstown) did not observe significant difference ($p = 0.9$ and $0.75$). 
 
+I have much confusion about this peculiar role of embarkation. One relevant point I found lately is that the Cherbourg list of passengers vanished long ago, according to a famous Titanic tract *Who Sailed on Titanic*, by Debbie Beavis. Getting the number of passengers on that port is difficult, not to mention the exact list of who went on which ship. Though it is still hard to imagine why Cherbourg could almost shoulder the entire $\chi^2$ statistic for `joined`, even with the presence of some amount of incorrectness. 
 
-Nationality is highly insignificant ($p = 0.58$).  
-
-https://www.encyclopedia-titanica.org/community/threads/passengers-who-spoke-other-languages.20103/
-
-One explanation is that the crew's instructions (in English) tended to be along the lines of "Wait down here for further orders" a lack of understanding might well have saved many lives. Also many of the immigrants in 3rd class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
-
-\hfill\break
-
-
-
-
-One last discovery concerns embarkation point. Passengers boarded at Cherbourg have a surprisingly higher survival rate of over $50\%$.  
-
-```{r, fig.height = 4}
-ggplot(Predict(f2, joined, fun = plogis), anova = anova(f2), pval = TRUE, size.anova = 3.5)
+```{r partial-port, fig.cap = "Partial effects of port on predicted survival probability", fig.height = 3}
+ggplot(Predict(f2, joined,
+               fun = plogis), 
+       anova = anova(f2), pval = TRUE, size.anova = 3, adj.subtitle = FALSE) + 
+  labs(x = NULL, y = NULL)
 ```
 
-
-
-Figure \@ref(titanic-route)^[Source: https://evansexpertsattheroutethird.weebly.com/route]
-
-
-```{r titanic-route, out.width = "90%", fig.cap = "(ref:titanic-route)"}
-knitr::include_graphics("images/route.png")
-```
-
-
-(ref:titanic-route) The Titanic's route.
 
 
 # Conclusion 
 
 
-
+It may also also be informative to split crew members further into groups of different responsibilities, e.g., officers, deck and engine crews, victualing, restaurant staff. These working groups differs in comparative information advantage and authority, which affects survival rate. 
 
 
 \pagebreak
@@ -632,14 +602,13 @@ knitr::include_graphics("images/route.png")
 
 A variety of other versions and forms of Titanic data sources have been collected due to public's constant interests in the tragedy as well as modern efforts trying to unveil the mystery. A comprehensive overview of several data variants is given by @symanzikunsinkable. Data in this case study is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), a leading archive on titanic facts.  In contrast to the the famous titanic dataset (known as `titanic3`) distributed by [kaggle](kaggle.com) for introductory level machine learning practices, the case study uses a more up-to-date and complete dataset in the following ways
 
-- **Larger sample size**. Our data includes crew and staff members alongside passengers, while titanic3 only incorporate passenger information. We do not use a separate test set approach for validation either. As a result, the sample size is about 2.5 times larger. 
+- Larger sample size. Our data includes crew and staff members alongside passengers, while titanic3 only incorporate passenger information. We do not use a separate test set approach for validation either. As a result, the sample size is about 2.5 times larger. 
 
-- **More columns**. Additional variables such as role on the ship, nationality and occupation are added. A major difference is made by separating the travel companion data into four distinct columns: number of parents, children, sibling and spouses that each passenger traveled with. These were combined into two columns before. 
+- More variables. Additional columns such as role on the ship, nationality and occupation are added. A major difference is made by separating the travel companion data into four distinct columns: number of parents, children, sibling and spouses that each passenger traveled with. These were combined into two columns before. 
 
-- **More accurate**. `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. During the recent two decades the data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects our our most up-to-date understanding of the event, in the digital form, as of 21 October 2020. 
+- Improved accuracy. `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. During the recent two decades the data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects our our most up-to-date understanding of the event, in the digital form, as of 21 October 2020. 
 
-
-The data cleaning process involves using appropriate data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/clean.R).
+The data cleaning process involves converting data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/clean.R).
 
 `title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".] This is a predictor that has been widely reported to have good predictive ability in many submissions. However, as we see in the redundancy analysis at the end of Section \@ref(descriptive), it should not even be accepted in the tentative, saturated model. 
 
@@ -651,40 +620,105 @@ Age information is presented as non-missing on the surface yet there is an indic
 
 Variables we do not utilize in this project includes name, date of birth and death, lifeboat number^[There were 9 recorded passengers who got on the lifeboat yet died before reaching Carpathia, another RMS which spearheaded the rescue of Titanic survivors. There were also 13 passengers who survived with no boat information documented, and this is most likely due to data quality issues after looking up on Encyclopedia Titanica. Even with these exceptions, whether a passenger got on a lifeboat yields perfect prediction on his/her survival. If one fits a logistic regression model on survival based on whether `boat` is missing, the apparent accuracy will be nearly 1. In this sense `boat` is more the result of survival, rather than a cause.], fare, and cabin number.^[Although some study used this attribute to find cabin locations, its large amount of missingness could be a major source of complexity.]
 
-# Model formula 
+# Model formula and paramter estimates {#formula}
+
+<!-- Produced by mylatex(f2, file="", size="small") -->
 
 \[{\rm Prob}\{{\rm survived}=1\} = \frac{1}{1+\exp(-X\beta)}, {\rm \ \ where} \\ \]
 \begin{eqnarray*}
 \small
 \lefteqn{X\hat{\beta}=}\\
-& & 0.01051937 \\
-& & + 0.212622     {\rm age}-0.0005693763({\rm age}-10)_{+}^{3}+0.00243494   ({\rm age}-22)_{+}^{3}  \\
-& &   -0.00296655  ({\rm age}-29)_{+}^{3}+0.001247244  ({\rm age}-37)_{+}^{3}-0.0001462583({\rm age}-54.65)_{+}^{3}  \\
-& &  -1.976675[{\rm Male}] \\
-& &  +4.807962 [{\rm 2nd}]-1.20667 [{\rm 3rd}]-2.373247[{\rm crew}] \\
-& &  +3.484454[{\rm 1}] \\
-& &  +0.9160294[{\rm 1}] \\
-& &  +0.09633225 [{\rm English}]+0.230353   [{\rm Finnish}]+0.02481168 [{\rm Irish}]-0.2209938 [{\rm Other}] \\
-& &  -0.2027473 [{\rm Swedish}]-0.03927193[{\rm Syrian}] \\
-& &  +0.6509122  [{\rm Cherbourg}]+0.1320052  [{\rm Queenstown}]-0.06351243[{\rm Southampton}] \\
-& &  +[{\rm Male}][-0.1405648   {\rm age}+0.0004524996 ({\rm age}-10)_{+}^{3}-0.002005646 ({\rm age}-22)_{+}^{3}  \\
-& &  +0.002351455  ({\rm age}-29)_{+}^{3}-0.0008518177({\rm age}-37)_{+}^{3}  \\
-& &   +0.00005350913({\rm age}-54.65)_{+}^{3}  ] \\
-& &  +[{\rm 2nd}][-0.3419093  {\rm age}+0.0007375354({\rm age}-10)_{+}^{3}-0.003089915({\rm age}-22)_{+}^{3}  \\
-& &  +0.003795193 ({\rm age}-29)_{+}^{3}-0.001665266({\rm age}-37)_{+}^{3}+0.0002224522({\rm age}-54.65)_{+}^{3}  ] \\
-& &  +[{\rm 3rd}][-0.1350322  {\rm age}+0.0004403169({\rm age}-10)_{+}^{3}-0.002559262({\rm age}-22)_{+}^{3}  \\
-& &  +0.003927355 ({\rm age}-29)_{+}^{3}-0.002087077({\rm age}-37)_{+}^{3}+0.0002786668({\rm age}-54.65)_{+}^{3}  ] \\
-& &  +[{\rm crew}][0.05036612   {\rm age}+0.0000222523 ({\rm age}-10)_{+}^{3}-0.0005447881({\rm age}-22)_{+}^{3}  \\
-& &  +0.001158836  ({\rm age}-29)_{+}^{3}-0.0007325991({\rm age}-37)_{+}^{3}  \\
-& &   +0.00009629903({\rm age}-54.65)_{+}^{3}  ] \\
-& &  +[{\rm Male}][-0.4116912\:[{\rm 2nd}]+2.182068  \:[{\rm 3rd}]+0.5489062 \:[{\rm crew}] ] \\
-& &  +[{\rm 1}][-0.1204537   {\rm age}-0.0004222734({\rm age}-10)_{+}^{3}+0.005086125  ({\rm age}-22)_{+}^{3}  \\
-& &   -0.01293022  ({\rm age}-29)_{+}^{3}+0.01045057   ({\rm age}-37)_{+}^{3}-0.002184206 ({\rm age}-54.65)_{+}^{3}  ] \\
+& & 0.008881433 \\
+& & + 0.2114074    {\rm age}-0.000573145 ({\rm age}-10)_{+}^{3}+0.00246216   ({\rm age}-22)_{+}^{3}  \\
+& &  -0.003007257 ({\rm age}-29)_{+}^{3}+0.001265583  ({\rm age}-37)_{+}^{3}  \\
+& &   -0.0001473412({\rm age}-54.65)_{+}^{3}  \\
+& &  -1.965745[{\rm Male}] \\
+& &  +4.801849 [{\rm 2nd}]-1.207512[{\rm 3rd}]-2.311638[{\rm crew}] \\
+& &  +3.482035[{\rm 1}] \\
+& &  +1.722792[{\rm 1}] \\
+& &  +0.08636608 [{\rm English}]+0.230042   [{\rm Finnish}]+0.0155819  [{\rm Irish}]-0.2309403 [{\rm Other}] \\
+& &  -0.1927661 [{\rm Swedish}]-0.04923775[{\rm Syrian}] \\
+& &  +0.6624393  [{\rm Cherbourg}]+0.1582776  [{\rm Queenstown}]-0.06188784[{\rm Southampton}] \\
+& &  +[{\rm Male}][-0.1407618   {\rm age}+0.0004672268 ({\rm age}-10)_{+}^{3}-0.002094754 ({\rm age}-22)_{+}^{3}  \\
+& &  +0.002485191  ({\rm age}-29)_{+}^{3}-0.0009185903({\rm age}-37)_{+}^{3}  \\
+& &   +0.00006092609({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm 2nd}][-0.3392543  {\rm age}+0.0007260332({\rm age}-10)_{+}^{3}-0.003023828({\rm age}-22)_{+}^{3}  \\
+& &  +0.003693232 ({\rm age}-29)_{+}^{3}-0.001610244({\rm age}-37)_{+}^{3}+0.0002148067({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm 3rd}][-0.1339377  {\rm age}+0.0004332387({\rm age}-10)_{+}^{3}-0.002523439({\rm age}-22)_{+}^{3}  \\
+& &  +0.003882666 ({\rm age}-29)_{+}^{3}-0.002070494({\rm age}-37)_{+}^{3}+0.0002780277({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm crew}][0.05161241   {\rm age}+0.00001196427({\rm age}-10)_{+}^{3}-0.0004874508({\rm age}-22)_{+}^{3}  \\
+& &  +0.001074983  ({\rm age}-29)_{+}^{3}-0.0006907784({\rm age}-37)_{+}^{3}  \\
+& &   +0.00009128236({\rm age}-54.65)_{+}^{3}  ] \\
+& &  +[{\rm Male}][-0.4206718\:[{\rm 2nd}]+2.177372  \:[{\rm 3rd}]+0.4894051 \:[{\rm crew}] ] \\
+& &  +[{\rm 1}][-0.1193207   {\rm age}-0.0004343827({\rm age}-10)_{+}^{3}+0.005184355  ({\rm age}-22)_{+}^{3}  \\
+& &   -0.01314738  ({\rm age}-29)_{+}^{3}+0.01061509   ({\rm age}-37)_{+}^{3}-0.00221768  ({\rm age}-54.65)_{+}^{3}  ] \\
+& &  -1.206593\:[{\rm Male}]\:\times\:[{\rm 1}] \\
 \end{eqnarray*}
 and \([c]=1\) if subject is in group \(c\), 0 otherwise; \((x)_{+}=x\) if \(x > 0\), 0 otherwise\
 
+Parameter estimates, standard error, Wald statistic and p-value
+
+<!-- Produced as part of print(f2) -->
 
 
+\small
+\setlongtables
+\begin{longtable}{lrrrr}
+\hline
+ \multicolumn{1}{l}{}&\multicolumn{1}{c}{$\hat{\beta}$}&\multicolumn{1}{c}{S.E.}&\multicolumn{1}{c}{Wald $Z$}&\multicolumn{1}{c}{Pr$(>|Z|)$}\tabularnewline
+ \hline
+ \endhead
+ \hline
+ \endfoot
+ Intercept&~  0.0089~&~ 2.1148~& 0.00&0.9966\tabularnewline
+ age&~  0.2114~&~ 0.1251~& 1.69&0.0910\tabularnewline
+ age'&~ -1.1426~&~ 0.7426~&-1.54&0.1239\tabularnewline
+ age''&~  4.9086~&~ 3.5265~& 1.39&0.1639\tabularnewline
+ age'''&~ -5.9953~&~ 4.7267~&-1.27&0.2047\tabularnewline
+ gender=Male&~ -1.9657~&~ 1.0625~&-1.85&0.0643\tabularnewline
+ class=2nd&~  4.8018~&~ 2.4761~& 1.94&0.0525\tabularnewline
+ class=3rd&~ -1.2075~&~ 1.9539~&-0.62&0.5366\tabularnewline
+ class=crew&~ -2.3116~&~ 2.9322~&-0.79&0.4305\tabularnewline
+ parent=1&~  3.4820~&~ 1.2035~& 2.89&0.0038\tabularnewline
+ children=1&~  1.7228~&~ 0.8076~& 2.13&0.0329\tabularnewline
+ nationality=English&~  0.0864~&~ 0.2762~& 0.31&0.7545\tabularnewline
+ nationality=Finnish&~  0.2300~&~ 0.4309~& 0.53&0.5934\tabularnewline
+ nationality=Irish&~  0.0156~&~ 0.3898~& 0.04&0.9681\tabularnewline
+ nationality=Other&~ -0.2309~&~ 0.2674~&-0.86&0.3877\tabularnewline
+ nationality=Swedish&~ -0.1928~&~ 0.3815~&-0.51&0.6134\tabularnewline
+ nationality=Syrian&~ -0.0492~&~ 0.4463~&-0.11&0.9122\tabularnewline
+ joined=Cherbourg&~  0.6624~&~ 0.3345~& 1.98&0.0477\tabularnewline
+ joined=Queenstown&~  0.1583~&~ 0.4123~& 0.38&0.7011\tabularnewline
+ joined=Southampton&~ -0.0619~&~ 0.1998~&-0.31&0.7568\tabularnewline
+ age $\times$ gender=Male&~ -0.1408~&~ 0.0552~&-2.55&0.0108\tabularnewline
+ age' $\times$ gender=Male&~  0.9315~&~ 0.4138~& 2.25&0.0244\tabularnewline
+ age'' $\times$ gender=Male&~ -4.1761~&~ 2.2651~&-1.84&0.0652\tabularnewline
+ age''' $\times$ gender=Male&~  4.9545~&~ 3.3787~& 1.47&0.1425\tabularnewline
+ age $\times$ class=2nd&~ -0.3393~&~ 0.1538~&-2.21&0.0274\tabularnewline
+ age' $\times$ class=2nd&~  1.4474~&~ 0.9459~& 1.53&0.1260\tabularnewline
+ age'' $\times$ class=2nd&~ -6.0284~&~ 4.4551~&-1.35&0.1760\tabularnewline
+ age''' $\times$ class=2nd&~  7.3629~&~ 5.9182~& 1.24&0.2135\tabularnewline
+ age $\times$ class=3rd&~ -0.1339~&~ 0.1158~&-1.16&0.2476\tabularnewline
+ age' $\times$ class=3rd&~  0.8637~&~ 0.7003~& 1.23&0.2174\tabularnewline
+ age'' $\times$ class=3rd&~ -5.0308~&~ 3.3216~&-1.51&0.1299\tabularnewline
+ age''' $\times$ class=3rd&~  7.7406~&~ 4.4306~& 1.75&0.0806\tabularnewline
+ age $\times$ class=crew&~  0.0516~&~ 0.1684~& 0.31&0.7592\tabularnewline
+ age' $\times$ class=crew&~  0.0239~&~ 0.8542~& 0.03&0.9777\tabularnewline
+ age'' $\times$ class=crew&~ -0.9718~&~ 3.6543~&-0.27&0.7903\tabularnewline
+ age''' $\times$ class=crew&~  2.1431~&~ 4.4525~& 0.48&0.6303\tabularnewline
+ gender=Male $\times$ class=2nd&~ -0.4207~&~ 0.7009~&-0.60&0.5484\tabularnewline
+ gender=Male $\times$ class=3rd&~  2.1774~&~ 0.6237~& 3.49&0.0005\tabularnewline
+ gender=Male $\times$ class=crew&~  0.4894~&~ 0.8663~& 0.56&0.5721\tabularnewline
+ age $\times$ parent=1&~ -0.1193~&~ 0.1091~&-1.09&0.2742\tabularnewline
+ age' $\times$ parent=1&~ -0.8660~&~ 1.3351~&-0.65&0.5166\tabularnewline
+ age'' $\times$ parent=1&~ 10.3356~&~10.8394~& 0.95&0.3403\tabularnewline
+ age''' $\times$ parent=1&~-26.2109~&~29.2993~&-0.89&0.3710\tabularnewline
+ gender=Male $\times$ children=1&~ -1.2066~&~ 0.9608~&-1.26&0.2092\tabularnewline
+ \hline
+ \end{longtable}
+ \addtocounter{table}{-1}
+
+\normalsize
 
 
 # Computing environment
@@ -692,7 +726,7 @@ and \([c]=1\) if subject is in group \(c\), 0 otherwise; \((x)_{+}=x\) if \(x > 
 ```{r, comment = "", echo = TRUE}
 sessionInfo()
 ```
-
+\pagebreak
 
 ```{r bib,include=FALSE,cache=FALSE, eval = FALSE}
 # automatically create a bib database for R packages

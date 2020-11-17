@@ -1,3 +1,0 @@
-- fit saturated model rms chapter 4.1
-
-- redundancy analysis
