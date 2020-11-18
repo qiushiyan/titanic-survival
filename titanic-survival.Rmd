@@ -66,10 +66,9 @@ ggplot2::theme_set(ymisc::theme_clean())
 
 # Introduction 
 
-The sinking of RMS Titanic brought to numerous machine learning competitions a quintessential dataset among others. After the "unsinkable" British passenger liner struck an iceberg in her maiden voyage on 15 April 1912 and was eventually wrecked, more than 1500 people perished. Decades of effort has been devoted to the study of the historic event, in which one major interest for statistical inquiries is to model and predict survival given a number of characteristics, since there was clear account that some people  were allowed to get on the lifeboat first.  
 
 There are numerous variants of Titanic data existed on the web, with primary source based on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) [-@hind],  a site started in 1996 as an attempt to tell the story of every person that traveled the Titanic as a passenger or
-crew member. This project is based on the most recent version as of October 2020, with following columns available (table \@ref(data-dictionary)). Source data and steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
+crew member. This case study grows from the most recent version as of October 2020, with following columns available (table \@ref(data-dictionary)). Source data and steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
 
 
 
@@ -80,7 +79,7 @@ tribble(
   "age", "age", "In years, some infants had fractional values",
   "gender", "gender", "",
   "joined", "port of embarkation", "Belfast, Cherbourg, Queenstown, Southampton", 
-  "class", "", "1st, 2nd, 3rd or crew",
+  "class", "cabin class", "1st, 2nd, 3rd or crew",
   "nationality", "motherland", "from wiki passenger list",
   "title", "title", "Extracted from name",
   "spouse", "\\# of spouse on board", "",
@@ -99,15 +98,13 @@ After appropriate formatting and cleaning, the data underlying the whole analysi
 
 It is essential for every fruitful data analysis to first identify key questions of investigation that facilitates exploration and interpretation, however vague at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes and building on many outstanding works of study [-@gleicher2004survived;-@frey2009surviving;-@symanzikunsinkable], we establish the following research questions. 
 
-*Question 1*: To which degree is the *women and children first* policy respected? The obvious fact is that significantly higher proportion of females (`r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))`) and children (`r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))`) rescued than that in males (`r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))`) and adults (`r label_percent(0.1)(mean(subset(t, age > 12)$survived == 1))`). The key question lies in identifying possible factors that might intervene this process. For example, a first class adult male may possess the socio-economic advantage or financial means to get lifeboat access unfairly from the deck crew. The policy can be disrupted in other ways: some Titanic subjects could behave more in line with the selfish *homo oeconomicus*, then people (especially male) in their prime with physical superiority would see higher probability of survival. 
+*Question 1*: To which degree is the *women and children first* policy respected? The obvious fact is that significantly higher proportion of females (`r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))`) and children (`r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))`) were rescued than males (`r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))`) and adults (`r label_percent(0.1)(mean(subset(t, age > 12)$survived == 1))`). The key question lies in identifying possible factors that might intervene this process. For example, a first class adult male may possess the socio-economic advantage or financial means to get lifeboat access unfairly from the deck crew. The policy can be disrupted in other ways: some Titanic subjects could behave more in line with the selfish *homo oeconomicus*, then people (especially male) in their prime with physical superiority would see higher probability of survival. We are interested to know how gender, age and class are interwoven to form the resulting Titanic survival pattern. 
 
+*Question 2*: Could crew members resist self interests? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location of the lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to know whether self interest dominates in the life-and-death situation and crew tend to look out for themselves, or they have faithfully adhered to their responsibilities. 
 
+*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions were in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. The theory of parental investment suggests that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
 
-*Question 2*: What is the crew member's position in the rescue effort? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location of the lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to know whether self interest dominates in the life-and-death situation and crew tend to look out for themselves. 
-
-*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions could be in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. The theory of parental investment suggests that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
-
-*Question 4*: Did English passengers receive any special care or given priority to aboard lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers that might give preference to compatriots. 
+*Question 4*: Did English passengers receive any special care or given priority to board lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers that might give preference to compatriots. 
 
 
 
@@ -217,12 +214,15 @@ t$title <- NULL
 ```{r loess-curve, fig.height = 7.5, fig.cap = "(ref:loess-curve)"}
 p1 <- ggplot(t, aes(age, survived)) +
   histSpikeg(survived ~ age, lowess = TRUE, data = t) + 
+  scale_y_continuous(labels = scales::label_percent()) +
   labs(y = NULL, x = NULL)
 p2 <- ggplot(t, aes(age, survived, color = gender)) + 
   histSpikeg(survived ~ age + gender, lowess = TRUE, data = t) + 
+  scale_y_continuous(labels = scales::label_percent()) +
   labs(y = NULL, x = NULL)
 p3 <- ggplot(t, aes(age, survived, color = class)) + 
   histSpikeg(survived ~ age +  class + gender, lowess = TRUE, data = t) + 
+  scale_y_continuous(labels = scales::label_percent()) +
   labs(y = NULL) + 
   facet_wrap(~ gender) + 
   theme(legend.position = "bottom")
@@ -290,12 +290,10 @@ mylatex(anova(f1), file="", size = "small", table.env = TRUE, caption = "Hypothe
 
 
 
-
-
 Table \@ref(fone-anova) selects specific hypothesis to test for general power, linearity and additivity assumptions of individual predictors, as well as their "chunky" version of global effects. We see dominant main effects of gender, age and cabin class, be it linear or nonlinear ($p < 0.0001$) More notably are the strong nonlinear interaction terms between the three. Of all four companion variables only parent manifests clear predictive ability. The impact of embarkation point is somewhat ambiguous ($p = 0.14$). As a graphical illustration, figure \@ref(fig:fone-anova-plot) plots "adjusted" partial $\chi^2$ statistic of each predictor in the saturated model, with correction for degrees of freedom allocated to them.^[The correction is done by subtracting the d.f. from the partial $\chi^2$ statistic, its expected value under the null hypothesis.] This adjustment levels the playing field for comparison of predictive ability. The larger the adjusted $\chi^2$, the more likely a variable would have a non-flat impact on survival status.  
 
-```{r fone-anova-plot, fig.cap = "(ref:fone-anova-plot)", fig.pos = "h", out.extra=""}
-plot(anova(f1))
+```{r fone-anova-plot, fig.cap = "(ref:fone-anova-plot)", fig.height = 4.5, fig.width = 5.5,fig.pos = "h", out.extra=""}
+plot(anova(f1), cex = 0.8)
 ```
 (ref:fone-anova-plot) Ranking of predictive power in the saturated model based on adjusted $\chi^2$ 
 
@@ -501,28 +499,30 @@ To sum up, the model presents reasonable discrimination power and satisfactory q
 
 # Interpretation and discussion {#interpretation}
 
+
+
 With non-monotonic relations and interactions involved, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category.
 
 
-
-
-Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. 
+Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class (we leave discussions for the crew in a separate plot). 
 
 ```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)", fig.height = 3.5, fig.pos = "H", out.extra = ""}
 ggplot(Predict(f2, age, gender, class = c("1st", "2nd", "3rd"), 
                fun = plogis), 
        legend.position = "none",
        adj.subtitle = FALSE, 
-       colorscale = function(...) scale_color_manual(values = c("blue", "orange")))
+       colorscale = function(...) scale_color_manual(values = c("blue", "orange"))) +
+  scale_y_continuous(labels = scales::label_percent()) + 
+  labs(x = NULL)
 ```
+
+(ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class. The default control setting is parent $=$ 0, children $=$ 0, nationality $=$ English, and port $=$ Southampton. Shaded region are 95% confidence interval. 
 
 \hfill\break
 
 *Question 1*: Study the effects of the *women and children first policy*, with focus on gender, age and classes. 
 
 
-
-(ref:partial-age-sex-cabin) Age effects on survival status for \color{blue} \textbf{female} \color{black} and \color{orange} \textbf{male} \color{black}, stratified by cabin class. The default control setting is parent $=$ 0, children $=$ 0, nationality $=$ English, and port $=$ Southampton. Shaded region shows 95% confidence interval. 
 
 Women and children are evacuated first on average, as mentioned before using total proportion. The model helps us bring into considerations possibly intervening factors that could distort the established order of lifeboat access.  There was recollection that at the beginning of the sinking,  the Second Officer  on the Titanic suggested to Captain Smith, "Hadn't we better get the women and children into the boats, sir?", to which the captain responded: "put the women and children in and lower away".  Fifth Officer Harold Lowe in the American Inquiry as reinforced this policy as one regardless of classes
 
@@ -543,15 +543,57 @@ In summary, women and children first was only true on average, it was a not a cl
 
 \hfill\break
 
-*Question 2*: 
+*Question 2*: Are crew members driven more by self interests or by responsibilities during the sinking? 
 
-Crew members have a survivial pattern very skin to that of first class passengers, in both absolute value
+In regions where we have relatively large sample (age between 20 and 40), crew members have a survival pattern very skin to that of first class passengers (left panel of figure \@ref(fig:partial-age-crew)). Females are predicted to survive with a probability `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "crew", fun = plogis)$yhat))`. In contrast, the mean survival probability female between 20 and 40 in first, second and third class passengers are `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "1st", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "2nd", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "3rd", fun = plogis)$yhat))`. When it comes to males, the relative magnitude is the same. The right panel of \@ref(fig:partial-age-crew) confirms that crew members were generally the group with the second largest survival probability. This was not necessarily caused by negligence, but their advantages in informational and relational resources is evident. 
+
+
+```{r, cache = TRUE}
+age <- Predict(f2, age, gender, class = "crew", 
+             fun = plogis)$age
+a <- age[age >= 20 & age <= 40]
+
+age_compare <- tibble(age = a, 
+       crew = Predict(f2, age = a, class = "crew", fun = plogis)$yhat,
+       first = Predict(f2, age = a,  class = "1st", fun = plogis)$yhat,
+       second = Predict(f2, age = a, class = "2nd", fun = plogis)$yhat,
+       third = Predict(f2, age = a, class = "3rd", fun = plogis)$yhat) %>% 
+  tidyr::pivot_longer(-1, names_to = "class", values_to = "prob")
+```
+
+
+```{r partial-age-crew, fig.cap = "(ref:partial-age-crew)", fig.height = 3, fig.width = 5.5, fig.pos="h", out.extra=""}
+p1 <- ggplot(Predict(f2, age, gender, class = "crew", 
+               fun = plogis), 
+       legend.position = "none",
+       adj.subtitle = FALSE, 
+       colorscale = function(...) scale_color_manual(values = c("blue", "orange"))) + 
+  scale_y_continuous(labels = scales::label_percent()) +   
+  labs(x = NULL, y = NULL)
+
+p2 <- age_compare %>%
+  ggplot(aes(age, prob, color = class, group = class)) +
+  geom_line() + 
+  theme(legend.position = "none") + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  labs(x = NULL, y = NULL) + 
+  gghighlight::gghighlight(TRUE, label_params = list(label.size = NA))
+
+p1 + p2
+```
+
+(ref:partial-age-crew) Left: partial effects of age for crew members. Right: comparing estimated survival probability of crew members to passengers when $20 \le\text{age} \le 40$. 
 
 \hfill\break
 
-*Question 3*: 
+*Question 3*: Did those traveling with a companion have a higher survival probability than those traveling alone? 
 
-Having parents or children around could significantly increases the chance
+Subjects having at least one parent with them clearly have better chances in surviving ($p = 0.01$), while effects of a child is on the verge of significance $p = 0.06$. 
+
+We do not see significant joint effects between age and parent, gender and children. This means a parent influences survival chance of babies, teenagers and adults alike. And the gender distinction in caring for the next generation is not manifest on the ship. 
+
+The other two types of companions, sibling and spouse, were ruled out from due to their low explanatory value. 
+
 
 
 
@@ -561,35 +603,45 @@ Having parents or children around could significantly increases the chance
 
 *Question 4*: Did British passengers gained survival advantage for some reason (e.g., activated national tie or simply because they can understand the instructions)?     
 
-Nationality is highly insignificant in the final model ($p = 0.58$). For the same class, people from different nations have almost identical survival pattern. (figure \@ref(fig:partial-nationality). One explanation, according to the titanica forum,  is that the crew's instructions in English tended to be along the lines of "Wait down here for further orders", and a lack of understanding might . Also many of the immigrants in third class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
+Nationality is highly insignificant in the final model ($p = 0.58$). For the same class, people from different nations have almost identical survival pattern. (figure \@ref(fig:partial-nationality). One explanation, according to the titanica forum,  is that the crew's instructions in English tended to be along the lines of "Wait down here for further orders", and a lack of understanding might even help. 
 
-```{r partial-nationality, fig.cap = "Partial effects of nationality on predicted survival probability. ", fig.height = 3}
+```{r partial-nationality, fig.cap = "Partial effects of nationality on predicted survival probability. ", fig.height = 3, fig.pos = "H", out.extra = ""}
 ggplot(Predict(f2, nationality, fun = plogis, class = c("1st", "2nd", "3rd")),   
        anova = anova(f2), size.anova = 3, adj.subtitle = FALSE) + 
   labs(x = NULL)
 ```
-
+Another explanation why ability to speak or at least understand English might not be an edge, is that many immigrants in third class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
 
 \hfill\break
 
 
-Our last discovery concerns embarkation point. Passengers boarded at Cherbourg totaled 271, and had a surprisingly higher marginal survival rate of over 50%. The predicted survival probability is about 10% higher at Cherbourg than the average. The other two non-reference locations (Southampton and Queenstown) did not observe significant difference ($p = 0.9$ and $0.75$). 
+Our last discovery concerns embarkation point. Passengers came aboard at Cherbourg totaled 271, and had a surprisingly higher marginal survival rate of over 50%. The predicted survival probability is about 10% higher at Cherbourg than the average. The other two non-reference locations (Southampton and Queenstown) did not observe significant difference ($p = 0.9$ and $0.75$). 
 
-I have much confusion about this peculiar role of embarkation. One relevant point I found lately is that the Cherbourg list of passengers vanished long ago, according to a famous Titanic tract *Who Sailed on Titanic*, by Debbie Beavis. Getting the number of passengers on that port is difficult, not to mention the exact list of who went on which ship. Though it is still hard to imagine why Cherbourg could almost shoulder the entire $\chi^2$ statistic for `joined`, even with the presence of some amount of incorrectness. 
 
-```{r partial-port, fig.cap = "Partial effects of port on predicted survival probability", fig.height = 3}
+```{r partial-port, fig.cap = "Partial effects of port on predicted survival probability", fig.height = 3, fig.pos = "H", out.extra = ""}
 ggplot(Predict(f2, joined,
                fun = plogis), 
        anova = anova(f2), pval = TRUE, size.anova = 3, adj.subtitle = FALSE) + 
   labs(x = NULL, y = NULL)
 ```
 
+I have much confusion about this peculiar role of embarkation. One relevant point I found lately is that the Cherbourg list of passengers vanished long ago, according to a famous Titanic tract *Who Sailed on Titanic*, by Debbie Beavis. Getting the number of passengers on that port is difficult, not to mention the exact list of who went on which ship. Though it is still hard to imagine why Cherbourg could almost shoulder the entire $\chi^2$ statistic for `joined`, even with the presence of some amount of incorrectness. 
 
 
 # Conclusion 
 
 
-It may also also be informative to split crew members further into groups of different responsibilities, e.g., officers, deck and engine crews, victualing, restaurant staff. These working groups differs in comparative information advantage and authority, which affects survival rate. 
+When all is said and done we detach ourselves from these fixed questions, and have a quick overall examination on all factors in figure \@ref(fig:ftwo-anova-plot). We identify gender, class and age as the top 3 most powerful determinants of survival status. Traveling with a parent and boarding the ship at Cherbourg (mysteriously) also increases survival probability. 
+
+```{r ftwo-anova-plot, fig.height = 3.5, fig.width = 5, fig.cap = "(ref:ftwo-anova-plot)", fig.pos = "H", out.extra = ""}
+plot(anova(f2), cex = 0.75)
+```
+
+(ref:ftwo-anova-plot) Ranking of predictive power in the final model based on adjusted $\chi^2$ 
+
+
+
+This short analysis leaves room for improvement in several ways, not the least of which is model specification. Flexibility (more knots on age, higher order and more interactions) is sacrificed in exchange for a workable fit without numerical problems. I also have to give up valuable information like fare in the model, as I have not figured a reasonable way to study its effect with one third of the subjects being crew members. It may also also be informative to split the crew into groups of different responsibilities, e.g., officers, deck and engine crews, victualing, restaurant staff. These working groups differ in comparative information advantage and authority, which affects survival rate. Another crucial yet missing determinant is the location of cabin, which is directly related to lifeboat access. Regrettably the probe into living details on the Titanic are often ambiguous and thus qualitative. 
 
 
 \pagebreak
@@ -608,7 +660,7 @@ A variety of other versions and forms of Titanic data sources have been collecte
 
 - Improved accuracy. `titanic3` was an effort to study Titanic in the 20th century, lastly updated and improved by Thomas Cason in 1999. During the recent two decades the data has been constantly revised, many errors corrected, many missing ages filled in, and new variables created. Now it reflects our our most up-to-date understanding of the event, in the digital form, as of 21 October 2020. 
 
-The data cleaning process involves converting data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/clean.R).
+The data cleaning process involves converting data types, creating new features, adjusting levels for categorical variable and excluding irrelevant columns. Code can be found at [clean.R](https://github.com/enixam/titanic-survival/blob/master/clean.R).
 
 `title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".] This is a predictor that has been widely reported to have good predictive ability in many submissions. However, as we see in the redundancy analysis at the end of Section \@ref(descriptive), it should not even be accepted in the tentative, saturated model. 
 

@@ -40,7 +40,7 @@ titanic <- readxl::read_excel("data/Titanic Maiden Voyage Passengers and Crew.xl
   relocate(survived) 
 
 
-# table of commpanion variables
+# table of companion variables
 rel <- readr::read_csv("data/query_result.csv") %>% 
   select(url = ETURL,
          age_approx = dob_approx,

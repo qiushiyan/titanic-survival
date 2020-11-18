@@ -6,7 +6,7 @@ In addition to modeling, we answer the following practical questions
 
 - To what degree is the *women and children policy* put into effect, and how it was interwoven with socio-economic status and self interest. 
 
-- How was crew
+- What's the crewmembers's surviving situation.  
 
 - Does having companions (e.g., parents, children, siblings and spouse) on the vessel increase or decrease survival probability. 
 
