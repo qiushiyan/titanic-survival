@@ -66,9 +66,11 @@ ggplot2::theme_set(ymisc::theme_clean())
 
 # Introduction 
 
+The sinking of RMS Titanic has brought to numerous machine learning competitions a quintessential dataset among others. The unsinkable British passenger liner in her maiden voyage struck an iceberg on 15 April 1912, and was eventually wrecked. More than 1500 people perished in the great loss. Decades of effort has been devoted to the study the tragic accident, in which one major interest for statistical inquiries is to model and predict the probability of survival given a number of characteristics. 
 
-There are numerous variants of Titanic data existed on the web, with primary source based on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) [-@hind],  a site started in 1996 as an attempt to tell the story of every person that traveled the Titanic as a passenger or
-crew member. This case study grows from the most recent version as of October 2020, with following columns available (table \@ref(data-dictionary)). Source data and steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
+
+In recent years the web has witnessed the birth of numerous variants of Titanic data, with one primary source being [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/) [-@hind],  a site started in 1996 as an attempt to tell the story of every person that traveled the Titanic as a passenger or
+crew member. This case study grows from the most up-to-date version of the site's data as of October 2020, with the following columns available (table \@ref(data-dictionary)). Source data and steps of data cleaning are elaborated in the [data](#data) section in the appendix. 
 
 
 
@@ -78,15 +80,14 @@ tribble(
   "survived", "survival Status", "0 = Lost, 1 = Saved",
   "age", "age", "In years, some infants had fractional values",
   "gender", "gender", "",
-  "joined", "port of embarkation", "Belfast, Cherbourg, Queenstown, Southampton", 
   "class", "cabin class", "1st, 2nd, 3rd or crew",
+  "joined", "port of embarkation", "Belfast, Cherbourg, Queenstown, Southampton", 
   "nationality", "motherland", "from wiki passenger list",
   "title", "title", "Extracted from name",
   "spouse", "\\# of spouse on board", "",
   "sibling", "\\# of siblings on board", "",
   "parent", "\\# of parents on board", "",
-  "children", "\\# of children on board", "",
-
+  "children", "\\# of children on board", ""
 ) %>% 
   mylatex(file = "", 
           table.env = TRUE, label = "data-dictionary", size = "small",
@@ -94,23 +95,26 @@ tribble(
 ```
 
 
-After appropriate formatting and cleaning, the data underlying the whole analysis recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. 
+The data underlying the whole analysis recorded the survival status `r nrow(t)` Titanic travelers alongside his/her gender, age, companions on board, title, nationality, etc. There were `r (t %>% count(survived))[["n"]][[1]]` victims and `r (t %>% count(survived))[["n"]][[2]]` survivors in total. 
 
-It is essential for every fruitful data analysis to first identify key questions of investigation that facilitates exploration and interpretation, however vague at the beginning. Then we can approach the core problem, filtering out trivialities, with statistical expression by abstraction. For our purposes and building on many outstanding works of study [-@gleicher2004survived;-@frey2009surviving;-@symanzikunsinkable], we establish the following research questions. 
+It is essential for every fruitful data analysis task to first identify core questions of investigation that facilitates exploration and interpretation, however vague at the beginning. For our purposes and building on many outstanding works of study [-@gleicher2004survived;-@frey2009surviving;-@symanzikunsinkable], we establish the following research questions. 
 
-*Question 1*: To which degree is the *women and children first* policy respected? The obvious fact is that significantly higher proportion of females (`r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))`) and children (`r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))`) were rescued than males (`r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))`) and adults (`r label_percent(0.1)(mean(subset(t, age > 12)$survived == 1))`). The key question lies in identifying possible factors that might intervene this process. For example, a first class adult male may possess the socio-economic advantage or financial means to get lifeboat access unfairly from the deck crew. The policy can be disrupted in other ways: some Titanic subjects could behave more in line with the selfish *homo oeconomicus*, then people (especially male) in their prime with physical superiority would see higher probability of survival. We are interested to know how gender, age and class are interwoven to form the resulting Titanic survival pattern. 
+\hfill\break
 
-*Question 2*: Could crew members resist self interests? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location of the lifeboats and the incoming danger. On the other hand, their obligation is to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to know whether self interest dominates in the life-and-death situation and crew tend to look out for themselves, or they have faithfully adhered to their responsibilities. 
 
-*Question 3*: For those who traveled alone with no companions (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? People without companions were in shortage of psychological and physical support during the sinking. While they might also be able to reach a life-saving decision faster without transaction cost and negotiation. Specifically, the effects of having parents or children on the ship has been widely studied. The theory of parental investment suggests that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
+*Question 1*: To which degree is the *women and children first* policy respected? The obvious fact is that significantly higher proportion of females (`r label_percent(0.1)(mean(subset(t, gender == "Female")$survived == 1))`) and children (`r label_percent(0.1)(mean(subset(t, age <= 12)$survived == 1))`) were rescued than males (`r label_percent(0.1)(mean(subset(t, gender == "Male")$survived == 1))`) and adults (`r label_percent(0.1)(mean(subset(t, age > 12)$survived == 1))`). The key question lies in identifying possible factors that might intervene this process. For example, a first class adult male may possess the socio-economic advantage or financial means to get lifeboat access unfairly from the deck crew. The policy can be disrupted in other ways: some Titanic subjects could behave more in line with the selfish *homo oeconomicus*, then people (especially male) in their prime with physical superiority would see higher probability of survival. We are interested to know how gender, age and class were interwoven together to form the resulting Titanic survival pattern. 
+
+*Question 2*: Did crew members fulfill their responsibilities? On the one hand, the `r nrow(subset(t, class=="crew"))` crew of men and women are expected to be more experienced, skilled and better informed about the location of the lifeboats and the incoming danger. On the other hand, their obligations were to care for the safety of passengers first, and only abandon the ship after the task has been fulfilled. We want to know whether self interest dominates in the life-and-death situation and crew tended to look out for themselves, or they have faithfully adhered to their responsibilities. 
+
+*Question 3*: For those who traveled alone with no companion (spouse, sibling, parent, children) on the vessel, is their survival probability greater or less? Those who are unaccompanied could reach a life-saving decision faster without transaction cost and negotiation, yet at the cost of a shortage of psychological and physical support.  Specifically, the effect of having a parent or a child on the ship has been widely studied. The theory of parental investment suggests that women on average invest more in caring for their offspring than males. In times of a disaster,  higher opportunity cost will alert females with offspring more than others, and make them seek more aggressively for changes to secure the children as well as themselves. In statistical terms,  gender-children interaction may exist. 
 
 *Question 4*: Did English passengers receive any special care or given priority to board lifeboats? After all, Titanic was operated by British crew, and managed by British captain, masters and officers that might give preference to compatriots. 
 
 
 
-This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible. To ensure reproducibility, all the analysis is done in R [@base] with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
+To ensure reproducibility, all the analysis is done in R [@base] with code and text made public in this [repo](https://github.com/enixam/titanic-survival). A brief summary of each section is listed below 
 
-- [Exploration](#exploration). With descriptive statistics, we examine data distribution characteristics, data missing patterns and relative effects, followed by redundancy analysis to study dependencies among predictors. Finish with nonparametric loess regression exploring nonlinear trends. 
+- [Exploration](#exploration). We examine data distribution characteristics, data missing patterns and relative effects leveraging descriptive statistics, followed by redundancy analysis to study dependencies among predictors. Finish with nonparametric loess regression exploring nonlinear trends. 
 
 - [Model development](#dev). The key section in specifying, developing, validating and describing a binary logistic model, split into 
 
@@ -119,7 +123,6 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
   - [Multiple imputation](#imputation): We use predictive mean matching to impute subject's age, resulting in 30 complete dataset. 
   
   - [Model fitting and validation](#fit). We fit the final pooled model. Bootstrap internal validation (the ".632" method) is used to study optimism-corrected index measuring discrimination and calibration. 
-
 
 - [Interpratation and discussion](#interpretation). We describe the model with both graphical methods such as partial effect plots and statistical testing. This provides model-based explanation to address former research problems.  
 
@@ -131,7 +134,7 @@ This case study has been greatly inspired by Dr. Frank Harrell's similar example
 
 ## Descriptive statistics and data processing {#descriptive}
 
-A graphical summary of of the data is given by the `Hmisc::describle` function. For numerical variables, a inline histogram is produced alongside summary measures such as the number of missing values and the mean. For discrete variables, we focus on the number of categories and their relative frequency.  
+A graphical summary of of the data is given by the `Hmisc::describle` function below. For numerical variables, a inline histogram is produced alongside summary measures such as the number of missing values and the mean. For discrete variables, we focus on the number of categories and their relative frequency.  
 
 ```{r, echo = FALSE, results = "asis"}
 # print a summary for the data
@@ -141,9 +144,9 @@ t %>%
 ```
 
 
-There are several noteworthy patterns.^[Though this may not be relevant to the model, it is still an surprising discovery that it wasn't until the late 19th century that the idea of women traveling alone gained ground. As a result, there were nearly twice as many males passengers as females on Titanic. In fact, only 40% female passengers have no companion on the ship.] 
+There are several noteworthy patterns.
 
-Of special importance is the `age` variable, which has roughly 30% missingness. On the other hand, it has a nearly symmetric distribution with 80% known observations falling between 14 and 50. For further examination of patterns of missing data, we could fit a decision tree to predict which type of subject tend to have missing ages. Generally, for some third class male passenger or crew, age is mostly to miss. 
+Of special importance is the `age` variable, which has roughly 30% missingness. On the other hand, it has a approximately symmetric distribution with 80% of the known observations falling between 14 and 50. For further examination of patterns of missing data, we fit a tree model, explaining when age is missing. 
 
 ```{r na-tree, echo = TRUE, fig.cap = "(ref:na-tree)", fig.height = 3.5}
 na_tree <- rpart(factor(is.na(age)) ~ ., 
@@ -153,16 +156,17 @@ na_tree <- rpart(factor(is.na(age)) ~ .,
 rpart.plot::rpart.plot(na_tree, type = 3, cex = 0.6)
 ```
 
-(ref:na-tree) The decision tree for predicting `is.na(age)`, which finds strong patterns of missing related to class/department and  gender (the Syrian node has very limited samples). Each node shows (top to bottom) the predicted class, the predicted probability of age being missing, the percentage of observations in the node.   
+(ref:na-tree) The decision tree for predicting `is.na(age)`, which finds strong patterns of missing related to class/department and  gender (the Syrian node has very limited samples). Each node shows (top to bottom) if age is predicted to be missing, the predicted probability of missing, the proportion of observations in the node.   
 
 
-We see in figure \@ref(fig:na-tree) that survival status, gender and class are essential in determining age missingness. For a 3rd class male passenger who did not survive, age is missing with a probability of 60%. Interestingly, English male crew members are much more likely to have missing age than subjects of other nationality
+
+We see in figure \@ref(fig:na-tree) that survival status, gender and class are essential in determining age missingness. Generally, for some third class male passenger or crew, age is most likely to be missing.  For a 3rd class male passenger who did not survive, age is missing with a probability of 60%. Interestingly, English male crew members are much more likely to have missing age than subjects of other nationalities. 
 
 
-Back to other variables in descriptive statistics. Distributions of subject's companion on Titanic are all too narrow, as illustrated in figure \@ref(fig:skew-rel). There is too little variation to model them continuously. This motivates categorization since we will not lose too much information. Lastly, nearly half of the subjects are English. And if we focus on crew, the number rise to 85%. 
+Back to other variables in descriptive statistics. There were nearly twice as many males passengers as females. It is an surprising discovery to me that it wasn't until the late 19th century that the idea of women traveling alone gained ground. The distribution of the number of companions one has on the Titanic tend to be very narrow and concentrated at 0, as illustrated in figure \@ref(fig:skew-rel). Such variables have too little variation to be modeled continuously. Dichotomization into "zero or more" is then motivated since the analyst will not lose too much information. 
 
 
-```{r skew-rel, fig.cap = "(ref:skew-rel)", fig.height = 3, fig.width = 5}
+```{r skew-rel, fig.cap = "(ref:skew-rel)", fig.height = 3, fig.width = 5, fig.pos = "h", out.extra = ""}
 t %>%
   tidyr::pivot_longer(8:11, names_to = "relation", values_to = "n") %>%
   ggplot() + 
@@ -173,7 +177,6 @@ t %>%
 
 (ref:skew-rel) Few subjects have more than one companion in any of the 4 relations.
 
-Given this results, the final step in data munging is to dichotomize `spouse`, `parent`, `children` and `sibling` to denote if there is such relation. Thus we no longer have to deal with continuous predictors with poor distribution. 
 
 ```{r}
 t$spouse <- if_else(t$spouse == 0, "0", "1")
@@ -182,7 +185,7 @@ t$sibling <- if_else(t$sibling == 0, "0", "1")
 t$children <- if_else(t$children == 0, "0", "1")
 ```
 
-Univariate relationship between each independent variable and survival status is presented in figure \@ref(fig:univariate). For each column, we build a anova-type plot with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to nonlinearity and predictors among variables that the univariate method fails to detect. 
+For each predictor, figure \@ref(fig:univariate) displays the survival percentage in the observations for different categories (or cutpoints). This is a univariate graph with no control over confounding variables, though it may still assist us in determining how to spend degrees of freedom. If a predictor's effect on the response is strong, it's more likely that we need to spend more parameters on it. However, if a variable's effect appears to be weak, it could either due to a truly flat relationship, or to a nonlinear effect. 
 
 ```{r univariate, fig.height = 7.5, fig.width  = 3.5, fig.cap = "Univariate summary of relationship between survival and each predictor"}
 s <- summary(survived ~ ., 
@@ -190,7 +193,7 @@ s <- summary(survived ~ .,
 plot(s, main = "" , subtitles = TRUE, cex = 0.65, pch = 22, width = 3)
 ```
 
-The plot reveals appreciably strong effects of gender and cabin class on survival status. Age effects seem trivial except for the subjects with missing entry, but again, the downside of such kind of univariate display is that it force the audience to think linearly, and only after categorization.  For the same reason effects of other variables cannot be determined. 
+The plot reveals appreciably strong effects of gender and cabin class on survival status. Age effects seem trivial except for the subjects with missing entry, but again, the downside of the univariate graph of this sort is that it forces the audience to think linearly, and only after categorization.  By the same token effects of other variables cannot be determined. 
 
 We finish with a redundancy analysis to study if data reduction of removing unnecessary predictors is possible. The checking algorithm expands continuous predictors into cubic splines and categorical predictors into dummy variables, it then uses OLS to predict each predictor with all remaining predictors. A predictor is deemed "redundant" if it can be predicted with an $R^2$ greater than 0.9. 
 
@@ -229,13 +232,15 @@ p3 <- ggplot(t, aes(age, survived, color = class)) +
 (p1 + p2) / p3 
 ```
 
-The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If a loess curve exhibits a reasonable degree of nonmonotonicity, it will often pay to not assume linearity, e.g., modeling the predictor with polynomial transformation or with splines. 
 
-It was widely documented that gender interacts directly with age, in other words, age effects for men and women are most likely to be nonparallel in the logit scale. Another prominant joint effects, according to many follow up studies, happened between age and cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under certain stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. Despite that the loess estimation here would by no means serve as a strict inference-oriented model, and we only include 3 factors at this point, it inspires a treatment of these effects that is more thorough and cautious. 
+(ref:loess-curve) loess estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel indicates nonlinear age effect without controlling other factors. Other plots give estimates under stratification by sex and class. The top right plot reflects women have a higher survival probability in general, and older females (red) and younger males (blue) are most likely to survive in their respective gender group. Two bottom plots depict survival pattern of subjects from different cabin class condition on sex.
+
+The loess method is a common nonparametric regression model to study nonlinear relationship. In the case of binary response, the fitted value at $x = x_0$ is the weighted proportion of positive cases near the neighborhood of $x_0$. If a loess curve exhibits a reasonable degree of nonmonotonicity, it will often pay to not assume linearity, e.g., modeling the predictor with polynomial transformation or with splines. For this reason, we can model age against survival status with loess regression to avoid linear assumption. 
+
+It was also widely studied that gender interacted directly with age, in other words, age effects for men and women are most likely to be nonparallel in the logit scale. Another prominent joint effect, according to many follow up studies, happened between age and cabin class. Figure \@ref(fig:loess-curve) displays loess estimates of survival probability given age under certain stratification. Not only in a powerful nonlinear fashion does age affect survival status (top left panel), we also observe it interact with other two factors in a nonlinear way. Despite that the loess estimation here would by no means serve as a strict inference-oriented model, and we only include 3 factors at this point, it inspires a treatment of these effects that is more cautious and thorough. We shall assume complexities such as nonlinearity and interaction, rather than a linear main effects model. 
 
 
 
-(ref:loess-curve) `loess` estimates of $P(\text{survived})$, with tick marks representing frequency counts within equal-width bins. Top left panel indicates nonlinear age effect without controlling other factors. Other plots give estimates under stratification by sex and class. The top right plot reflects women have a higher survival probability in general, and older females (red) and younger males (blue) are most likely to survive in their respective gender group. Two bottom plots depict survival pattern of subjects from different cabin class condition on sex.
 
 
 
@@ -245,11 +250,11 @@ It was widely documented that gender interacts directly with age, in other words
 
 # Model development {#dev}
 
-A typical modeling workflow begins with an choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism and assumes additivity, whereas machine learning models is algorithmatic in nature, optimized with parameter tuning. We choose to develop a statistical model, a "simple" binary logistic regression, for the following reasons. 
+A typical modeling workflow begins with an choice of a statistical model or a machine learning model. A statistical model often stems from a hypothesized probabilistic data generating mechanism y, whereas machine learning models are algorithmatic in nature, optimized with parameter tuning. We choose to develop a statistical model, a "simple" binary logistic regression, for the following reasons. 
 
-We prefer probabilistic predictions to classification with output label 0 and 1, for the emphasis placed upon the *tendency* of survival. And the value of the model consist not in a dichotomous prediction, but in what characteristics would increase or decrease the probability of survival. The notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
+We prefer probabilistic predictions to classification with output label 0 and 1, for the emphasis placed upon the *tendency* of survival. The value of modeling consists not in a dichotomous classification, but in what characteristics would increase or decrease the probability of survival. This notion has ruled out most of the machine learning models for classification, say, random forest, support vector machines and neural network, which are not intrinsically probability oriented. Such classifiers can often only yield a forced choice. 
 
-Interpretability and inference matters. Many top data science competitions has reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, yet interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct former inference. 
+Interpretability and inference matters. Many top data science competitions have reported moderately high signal to noise ratio (e.g., 90% prediction accuracy) that might tip the balance towards machine learning models, yet interpretability is harmed. Specifically, statistical models favours additivity and explicit specification. It follows that there are natural distinctions between main effects and interactions, linearity and nonlinearity. And the inference procedure is well defined provided that the model is correctly specified. While in a multi-layer neural network, everything can interact with one another and it could be daunting to isolate effects and conduct inference. 
 
 Machine learning models are data hungry and sometimes create the need for big data [@van2014modern]. To guard against overfitting, the analyst has to have a sample size that is 10 times larger at least if he chooses a tree model instead of regression. While this case study uses a Titanic dataset that is about 1/3 larger than those only concerned with passengers, it is far less sufficient for a typical data-hungry machine learning model to validate well. The rationale is that a statistical model is a safter approach that can do without big data,  as Dr. Harrell commented
 
@@ -258,9 +263,9 @@ Machine learning models are data hungry and sometimes create the need for big da
 
 ## Specification {#spec}
 
-We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. The large model also gives an overall sense of the predictive ability of each subject characteristics on survival status. This strategy as a starting point is also called prespecification of predictor complexity. It avoids creating phantom degrees of freedom when one has subjective judgment according to scatter diagrams or descriptive statistics on how to represent variables in a model. Commonly done, for example, is excluding a quadratic term simply because it is "non-significant", with p-value on the edge of $0.05$. This approach is known to distort coefficient estimates, confidence intervals, p-value  and calibration (too optimistic) of the final model,  because it fails to accounts for sampling variability and suffers selection bias.[@grambsch1991effects]^[confidence interval too narrow, p-value and standard errors too small and calibration too optimistic] Therefore, it is essential to have extra caution, as demonstrated below using resampling, to do model simplification. 
+We start by fitting a relatively large model, to decide how model complexity should be properly represented. This includes deciding the number of knots for continuous predictors and the number of categories of categorical predictors, could we remove some term, where should we place interaction, etc. This strategy as a starting point is also called prespecification of predictor complexity. It avoids creating phantom degrees of freedom when one has subjective judgment according to scatter diagrams or descriptive statistics on how to represent variables in a model. Commonly done, for example, is excluding a quadratic term simply because it is "non-significant", with p-value on the edge of $0.05$. This approach is known to distort coefficient estimates, confidence intervals, p-value  and calibration (too optimistic) of the final model,  because it fails to accounts for sampling variability and suffers selection bias.[@grambsch1991effects]^[confidence interval too narrow, p-value and standard errors too small and calibration too optimistic] Therefore, it is essential to have extra caution, as demonstrated below using resampling, to do model simplification. 
 
-Prespecification of predictor complexity is done first by developing a saturated logistic model and then making necessary adjustments and improvements. In this model, we granted age effect maximal flexibility represented as natural splines with 5 knots, and all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, and age and parent. Since this is an initial model, observations with missing age are not used. The model equation is ^[`rcs(x, n)` means "represent predictor x using natural splines with n knots". Knots are placed on evenly space percentiles by default.]
+Prespecification of predictor complexity is done first by developing a saturated logistic model and then making necessary adjustments and improvements. In this model, we grant age effect maximnum flexibility represented as natural splines with 5 knots, and all categorical predictors retain their original categories without pooling. Two way interactions have been specified between age and gender, age and class, age and parent, and gender and children. Since this is an initial model, observations with missing age are not used. The model equation is ^[`rcs(x, n)` means "represent predictor x using natural splines with n knots". Knots are placed on evenly space percentiles by default.]
 
 ```{r}
 dd <- datadist(t)
@@ -426,7 +431,7 @@ mylatex(anova(f2), file = "", size = "small", table.env = TRUE, label = "ftwo-an
 
 
 
-Table \@ref(ftwo-anova) again constructs meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreased by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development.
+Table \@ref(ftwo-anova) again constructs meaningful hypothesis testing for the final model. The $\chi^2$ statistic of age decreases by a minor amount, resulting from using patterns of association with survival status to impute missing age. Remaining predictors generally have larger $\chi^2$ statistic and smaller p-value compared to the saturated model in table \@ref(fone-anova), due to larger sample size in model development.
 
 
 ```{r, include = FALSE, cache = TRUE}
@@ -469,7 +474,7 @@ $g_{p}$&$ 0.2742$&$ 0.2812$&$ 0.2164$&$ 0.0365$&$ 0.2376$&$489$\tabularnewline
 \end{table}
 
 
-Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presented unbiased, optimism-corrected measures. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
+Although there will not be a second Titanic, making prediction a lesser problem, validation can still be used for good purposes. It quantifies the degree of overfitting by presenting unbiased, optimism-corrected metrics. More accurately, we will be using bootstrap internal validation to study the "future" performance of the model. In an award-winning solution to this legendary dataset submitted by IBM Watson, a holdout test set was used to validate their model. The data-splitting approach is known to require a significantly larger sample size ($> 20000$) than resampling methods on average to work acceptably well [@splitval]. Moreover, when the model developed on training sample is validated, the researcher would recombine training and testing set to fit a full model. This model, however, is never validated. 
 
 ```{r, cache = TRUE, include = FALSE, eval = FALSE}
 cal <- calibrate(f2, B = 500)
@@ -481,7 +486,7 @@ knitr::include_graphics("images/cal-curve.png")
 ```
 
 As an improved alternative, we choose Efron's 0.632 method for bootstrap internal validation. In each of the 494 bootstrap resamples, a logistic model is developed and evaluated on observations omitted from bootstrap samples. Per-bootstrap optimism is then the apparent index of accuracy subtracting that in the test sample formed by omitted observations. An weighted average $\hat{\varepsilon}_0$ over all 494 bootstrap resamples is computed to estimate the true optimism, while the bias-corrected
-estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is the a measure in how separated predictions are for survivors and victims. 
+estimate of predictive accuracy is calculated as $0.632(\text{apparent accuracy} - \hat{\varepsilon}_0)$. Table \@ref(model-val) displays the results. It validates two general aspects of model accuracy, discrimination and calibration. Calibration is the ability to make unbiased estimates of survival status, while discrimination is a measure in how separated predictions are for survivors and victims. 
 
 
 
@@ -492,7 +497,7 @@ The output does not deviate much from the apparent index. The validated area und
 
 
 Discrimination index are often associated with rank correlations between predictions and response, thus may not be sensitive enough to evaluate their closeness. Figure \@ref(fig:cal-curve) aims to gauge the concordance between predicted values and observed data, or in other words, calibration. The actual probability is estimated with loess regression, and the bias correction is computed in a similar way as in table \@ref(model-val). The 45 degree line indicates the ideal scenario in which prediction perfectly matches observation. The model is well-calibrated by and large, with slight departure from the straight line in central region where there were few observations. The mean squared error is 0.00018, and the 0.9 quantile of absolute error
-is 0.023. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflects strong calibration. 
+is 0.023. Similarly, the unreliability index $E_{max} =$ `r round((v2["Emax", "index.corrected"]/2)+0.5, 2)` measures maximum error in predicted probabilities. All these metrics reflect strong calibration. 
 
 To sum up, the model presents reasonable discrimination power and satisfactory quality of fitting. Excellent performance in calibration lifts overall metrics such as Brier score.
 
@@ -504,7 +509,7 @@ To sum up, the model presents reasonable discrimination power and satisfactory q
 With non-monotonic relations and interactions involved, interpretations built upon parameter estimates or interquartile-range odds ratios are rarely informative. In this case, the model can be effectively described by partial effects plots, where we plot each characteristics against $\hat{P}(\text{survived})$ while holding other predictors constant at mean or median for continuous variables and mode for categorical variables. When interactions are involved, the survival probability are estimated separately for various levels of the interacting factors. For categorical predictors, level-specific effects are computed comparing to a reference category.
 
 
-Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class (we leave discussions for the crew in a separate plot). 
+Figure \@ref(fig:partial-age-sex-cabin) is an example partial effect plot for age under stratification of sex and cabin class. 
 
 ```{r partial-age-sex-cabin, fig.cap = "(ref:partial-age-sex-cabin)", fig.height = 3.5, fig.pos = "H", out.extra = ""}
 ggplot(Predict(f2, age, gender, class = c("1st", "2nd", "3rd"), 
@@ -529,12 +534,12 @@ Women and children are evacuated first on average, as mentioned before using tot
 > It was simply the first woman, whether first class, second class, third class, or sixty-seventh class. It was all the same; women and children were first. 
  
 As we think not only in total numbers and the average,  particularly after taking a closer look at numbers under stratification, another story presents itself. To begin with, not all classes of women and children receive the same level of help during the sinking, whether intended or unintended. We observe that first class passengers have the highest predicted survival possibility in general, and the third class being the lowest. The chasm between classes is most manifest in adult women. A 30-year-old first class women is likely to survive with a likelihood between `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$lower)` and `r label_percent(0.1)(Predict(f2, age = 30, class = "1st", gender = "Female", fun = plogis)$upper)`), and had she been in the third class, `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$lower)` and `r label_percent(0.1)(Predict(f2, age = 30, class = "3rd", gender = "Female", fun = plogis)$upper)`. For children, knowing a 12-year-old comes from the first class increases the upper bound of predicted survival probability by nearly 30%. The most decisive explanation is that first-class passengers had better access to information about the
-imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower. In contrast, most third-class passengers were located at the quarters down the stern, from which the designer deliberately made it difficult to reach the upper decks. 
+imminent danger and were aware that the lifeboats were located close to the first class cabins. Thus, their marginal effort costs to survive were lower.  Only 4 first class women did not survive, and at least two of them stayed on the ship voluntarily. In contrast, most third-class passengers were located at the quarters down the stern, from which the designer deliberately made it difficult to reach the upper decks. 
 
 While the first class is used to exemplify the uneven treatments of different classes, the policy was severely undermined within the third class after removing class effects. But let us first take the second class as a reference group, where the prediction roughly matches what should happen if children and women received the asserted assistance
 on the part of the authorities. The likelihood of survival for both gender starts approximately at the same higher region, then the probability for male plunged as he ages, while female only see a minor decrease after leaving the "girl" region. In the observations children are saved 100% (24 out of 24) and 88.7% of the women are rescued (94 out of 106). 
 
-The third class deviates from the reference group in two mains ways.  Firstly, people in their prime have higher predicted survival probability. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive, for both men and women. Secondly, the gender gap in survival probability narrowed drastically for third class. For example, being an 28-year-old man in the third class increases survival probability by 10% compared to the second class on average, whereas for a female age-mate the third class made her 33% more unlikely to survive. In addition, third class children had a slight 6% advantage in survival rates over adults, whereas in the other 3 groups, this disparity rose to 56%.
+The third class deviates from the reference group in two mains ways.  Firstly, people in their prime have higher predicted survival probability. The survival curve displays an inverted U-shape, where people aged between 20 and 30 are mostly likely to survive, for both men and women. Secondly, the gender gap in survival probability narrowed drastically for third class. For example, being an 28-year-old man in the third class increases survival probability by 10% compared to the second class on average, whereas for a female age-mate the third class makes her 33% more unlikely to survive. In addition, third class children had a slight 6% advantage in survival rates over adults, whereas in the other 3 groups, this disparity rose to 56%.
 
 In summary, women and children first was only true on average, it was a not a class-blind effort, and third class women and children were faced with an extra harsh situation. 
 
@@ -545,7 +550,9 @@ In summary, women and children first was only true on average, it was a not a cl
 
 *Question 2*: Are crew members driven more by self interests or by responsibilities during the sinking? 
 
-In regions where we have relatively large sample (age between 20 and 40), crew members have a survival pattern very skin to that of first class passengers (left panel of figure \@ref(fig:partial-age-crew)). Females are predicted to survive with a probability `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "crew", fun = plogis)$yhat))`. In contrast, the mean survival probability female between 20 and 40 in first, second and third class passengers are `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "1st", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "2nd", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "3rd", fun = plogis)$yhat))`. When it comes to males, the relative magnitude is the same. The right panel of \@ref(fig:partial-age-crew) confirms that crew members were generally the group with the second largest survival probability. This was not necessarily caused by negligence, but their advantages in informational and relational resources is evident. 
+In age ranges where we have relatively large sample (between 20 and 40), crew members have a survival pattern very skin to that of the first class passengers (left panel of figure \@ref(fig:partial-age-crew)). Females are predicted to survive with a probability `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "crew", fun = plogis)$yhat))`. In contrast, the mean survival probability female between 20 and 40 in first, second and third class passengers are `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "1st", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "2nd", fun = plogis)$yhat))`, `r label_percent(0.1)(mean(Predict(f2, age = seq(20, 40), gender = "Female", class = "3rd", fun = plogis)$yhat))`. When it comes to males, the relative magnitude is the same. The right panel of figure \@ref(fig:partial-age-crew) confirms that crew members were generally the group with the second largest estimated survival probability. This was not necessarily caused by negligence, but their advantages in informational and relational resources is evident. 
+
+We cannot form a definitive answer as to whether the majority of the crew had fulfilled their responsibilities. There were, though, analysis pointing out that the crew failed to direct the some three to four hundred third class passengers who were heading toward the stern for safety [@gleicher2004survived]. There they had a false sense of assurance because  water was coming in from the bow at that time. Various stewards encouraged the group to make their journey to the stern. This eventually resulted in a cut-off from the rescue effort. 
 
 
 ```{r, cache = TRUE}
@@ -586,31 +593,27 @@ p1 + p2
 
 \hfill\break
 
-*Question 3*: Did those traveling with a companion have a higher survival probability than those traveling alone? 
+*Question 3*: Did those traveling with at least one companion have a higher survival probability than those traveling alone? 
 
-Subjects having at least one parent with them clearly have better chances in surviving ($p = 0.01$), while effects of a child is on the verge of significance $p = 0.06$. 
+Subjects having at least one parent with them clearly have better chances in surviving ($p = 0.01$), while effects of having child or children is on the verge of significance $p = 0.06$. Their relative influence in increasing the mean survival likelihood is similar, both leading to a estimated 6% rise.   
 
-We do not see significant joint effects between age and parent, gender and children. This means a parent influences survival chance of babies, teenagers and adults alike. And the gender distinction in caring for the next generation is not manifest on the ship. 
+We do not see significant joint effects between age and parent, and gender and children. This means parents influences survival chance of babies, teenagers and adults alike. And the gender distinction in caring for the next generation is not manifest on the ship. 
 
 The other two types of companions, sibling and spouse, were ruled out from due to their low explanatory value. 
 
 
-
-
-
-
 \hfill\break
 
-*Question 4*: Did British passengers gained survival advantage for some reason (e.g., activated national tie or simply because they can understand the instructions)?     
+*Question 4*: Did British passengers gain survival advantage for some reason (e.g., activated national tie or simply because they could understand the instructions)?     
 
-Nationality is highly insignificant in the final model ($p = 0.58$). For the same class, people from different nations have almost identical survival pattern. (figure \@ref(fig:partial-nationality). One explanation, according to the titanica forum,  is that the crew's instructions in English tended to be along the lines of "Wait down here for further orders", and a lack of understanding might even help. 
+Nationality is highly insignificant in the final model ($p = 0.58$). People from different nations have almost identical survival pattern in the same class (figure \@ref(fig:partial-nationality). One explanation, according to the titanica forum,  is that the crew's instructions in English tended to be along the lines of "Wait down here for further orders", and a lack of understanding might even help. 
 
 ```{r partial-nationality, fig.cap = "Partial effects of nationality on predicted survival probability. ", fig.height = 3, fig.pos = "H", out.extra = ""}
 ggplot(Predict(f2, nationality, fun = plogis, class = c("1st", "2nd", "3rd")),   
        anova = anova(f2), size.anova = 3, adj.subtitle = FALSE) + 
   labs(x = NULL)
 ```
-Another explanation why ability to speak or at least understand English might not be an edge, is that many immigrants in third class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
+Another explanation why the ability to speak or at least understand English might not be an edge, is that many immigrants in third class were traveling in family or neighborhood groups which included at least one English-speaker (often an established immigrant returning to the US from a visit back home) who could act as their spokesperson.
 
 \hfill\break
 
@@ -633,6 +636,8 @@ I have much confusion about this peculiar role of embarkation. One relevant poin
 
 When all is said and done we detach ourselves from these fixed questions, and have a quick overall examination on all factors in figure \@ref(fig:ftwo-anova-plot). We identify gender, class and age as the top 3 most powerful determinants of survival status. Traveling with a parent and boarding the ship at Cherbourg (mysteriously) also increases survival probability. 
 
+We found that complex class factors exists in the overt preference to rescue women and children first. First Class woman had a significantly greater likelihood of survival than either a woman from the second or third Class. Also, the difference in survival likelihood between male and female were much reduced in the third class.  
+
 ```{r ftwo-anova-plot, fig.height = 3.5, fig.width = 5, fig.cap = "(ref:ftwo-anova-plot)", fig.pos = "H", out.extra = ""}
 plot(anova(f2), cex = 0.75)
 ```
@@ -650,6 +655,8 @@ This short analysis leaves room for improvement in several ways, not the least o
 # (APPENDIX) Appendix {-} 
 
 
+This case study has been greatly inspired by Dr. Frank Harrell's similar example in his *Regression Modeling Strategies* [-@harrell2015regression Chapter 12] book, here I attempt to propose my understanding and interpretation of model development that is as original as possible.
+
 # Data
 
 A variety of other versions and forms of Titanic data sources have been collected due to public's constant interests in the tragedy as well as modern efforts trying to unveil the mystery. A comprehensive overview of several data variants is given by @symanzikunsinkable. Data in this case study is accessed on [Encyclopedia Titanica](https://www.encyclopedia-titanica.org/), a leading archive on titanic facts.  In contrast to the the famous titanic dataset (known as `titanic3`) distributed by [kaggle](kaggle.com) for introductory level machine learning practices, the case study uses a more up-to-date and complete dataset in the following ways
@@ -664,7 +671,7 @@ The data cleaning process involves converting data types, creating new features,
 
 `title` is extracted through each person's name with regular expressions and then collapsed into 4 levels.^[For example, the title for passenger "Abbing, Mr Anthony" is "Mr".] This is a predictor that has been widely reported to have good predictive ability in many submissions. However, as we see in the redundancy analysis at the end of Section \@ref(descriptive), it should not even be accepted in the tentative, saturated model. 
 
-Passengers are classified according to their cabin class. Others on the vessel fall into one of crew and staff members. Crew includes victualling crew^[crew in charge of food, housekeeping, laundry, room service, etc.], engineering crew, deck crew and officers, substitute crew and guarantee group. Staff members include restaurant staff and orchestra. 
+Passengers are classified according to their cabin class. Crew includes victualling crew^[crew in charge of food, housekeeping, laundry, room service, etc.], engineering crew, deck crew and officers, substitute crew, guarantee group, restaurant staff and orchestra. 
 
 Rare nationality (lower than 50 people) is collapsed. 
 
