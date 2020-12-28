@@ -33,16 +33,16 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fonts %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-\def\abstractfont{\fontsize{9}{10}\selectfont\leftskip1pc\rightskip5pc}%
+\def\abstractfont{\fontsize{11}{13}\selectfont}%
 \def\affilfont{\fontsize{10}{12}\selectfont\raggedright}%
 \def\articletypefont{\fontsize{12}{14}\selectfont\MakeUppercase}%
 \def\authorfont{\fontsize{11}{13}\selectfont\raggedright}%
 \def\extractfont{\fontsize{10}{12}\selectfont\leftskip12pt\rightskip12pt}%
 \def\figcaptionfont{\fontsize{8}{10}\selectfont}%
 \def\fignumfont{\fontsize{8}{10}\selectfont\bfseries}%
-\def\historyfont{\fontsize{9}{10}\selectfont\leftskip1pc\rightskip5pc plus1fill}%
-\def\keywordfont{\fontsize{9}{10}\selectfont\leftskip1pc\rightskip5pc plus1fill}%
-\def\receivedfont{\fontsize{9}{12}\selectfont\leftskip1pc\rightskip5pc}%
+\def\historyfont{\fontsize{9}{10}\selectfont\rightskip5pc plus1fill}%
+\def\keywordfont{\fontsize{9}{10}\selectfont\rightskip5pc plus1fill}%
+\def\receivedfont{\fontsize{9}{12}\selectfont\rightskip5pc}%
 \def\sectionfont{\fontsize{11}{13}\selectfont\bfseries\raggedright\boldmath}%
 \def\subsectionfont{\fontsize{11}{13}\selectfont\bfseries\itshape\raggedright\boldmath}%
 \def\subsubsectionfont{\fontsize{11}{13}\selectfont\itshape\raggedright}%
@@ -238,7 +238,7 @@
 \def\received#1{\gdef\@received{#1}}
 \def\history#1{\gdef\@received{#1}}
 \gdef\@history{\bfseries{ARTICLE HISTORY\\}\par}
-\gdef\@received{Compiled \today}
+\gdef\@received{Last updated on \today}
 %
 \long\def\name#1{#1\\\vspace{6pt}}%
 \long\def\affil#1{\affilfont{#1}\\}
