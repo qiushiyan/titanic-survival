@@ -10,3 +10,5 @@ data/Titanic Maiden Voyage Passengers and Crew.xlsx
 data/titanic.csv
 data/titanic3.csv
 data/query_result.csv
+*_files/
+*_cache/
