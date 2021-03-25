@@ -12,3 +12,4 @@ data/titanic3.csv
 data/query_result.csv
 *_files/
 *_cache/
+*.Rproj
