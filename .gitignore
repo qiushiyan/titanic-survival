@@ -4,3 +4,5 @@
 *.aux
 *.out
 *.log
+*_cache*
+*_files*
